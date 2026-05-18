@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RS Italia – Accesso</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      oklch(96.5% 0.006 88);
+  --card:    oklch(99.5% 0.002 88);
+  --border:  oklch(89.5% 0.006 88);
+  --text:    oklch(18% 0.012 250);
+  --text-2:  oklch(48% 0.006 250);
+  --text-3:  oklch(60% 0.005 250);
+  --blue:    oklch(44% 0.168 255.5);
+  --blue-h:  oklch(38% 0.168 255.5);
+  --neg:     oklch(40% 0.19 25);
+  --rs:      oklch(48% 0.21 25);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 2px 12px oklch(0% 0 0 / 0.06);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  background: var(--rs);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.5px;
+  flex-shrink: 0;
+}
+
+.brand-text {
+  line-height: 1.25;
+}
+
+.brand-text strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.brand-text span {
+  font-size: 11px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+
+h1 {
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 24px;
+}
+
+.field {
+  margin-bottom: 14px;
+}
+
+label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text-2);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+input {
+  display: block;
+  width: 100%;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px oklch(44% 0.168 255.5 / 0.12);
+}
+
+button {
+  display: block;
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #fff;
+  background: var(--blue);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+button:hover:not(:disabled) { background: var(--blue-h); }
+button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.error {
+  display: none;
+  margin-top: 14px;
+  padding: 9px 12px;
+  font-size: 13px;
+  color: var(--neg);
+  background: oklch(40% 0.19 25 / 0.08);
+  border: 1px solid oklch(40% 0.19 25 / 0.2);
+  border-radius: 6px;
+}
+
+.error.visible { display: block; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-mark">RS</div>
+    <div class="brand-text">
+      <strong>RS Italia</strong>
+      <span>LinkedIn Dashboard</span>
+    </div>
+  </div>
+
+  <h1>Accedi</h1>
+  <p class="subtitle">Inserisci le tue credenziali per continuare.</p>
+
+  <form id="form" novalidate>
+    <div class="field">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="email" required placeholder="nome@rsitalia.it">
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button type="submit" id="btn">Accedi</button>
+    <div class="error" id="error"></div>
+  </form>
+</div>
+
+<script>
+const form = document.getElementById('form');
+const btn  = document.getElementById('btn');
+const err  = document.getElementById('error');
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  err.className = 'error';
+  btn.disabled = true;
+  btn.textContent = 'Accesso in corso…';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      })
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      err.textContent = data.error || 'Errore di accesso';
+      err.className = 'error visible';
+      btn.disabled = false;
+      btn.textContent = 'Accedi';
+      return;
+    }
+
+    const params = new URLSearchParams(location.search);
+    location.href = params.get('next') || '/';
+  } catch {
+    err.textContent = 'Errore di rete. Riprova.';
+    err.className = 'error visible';
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
+  }
+});
+</script>
+</body>
+</html>

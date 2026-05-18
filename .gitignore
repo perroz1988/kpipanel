@@ -6,6 +6,9 @@
 .dropbox
 Icon
 
+# Variabili d'ambiente
+.env
+
 # Dati sensibili — non vanno in repo pubblico
 archive/
 inbox/

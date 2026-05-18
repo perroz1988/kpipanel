@@ -346,6 +346,12 @@ body.print-mode .row-4, body.print-mode .card, body.print-mode .kpi { break-insi
 }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
+<style id="auth-veil">html{visibility:hidden}</style>
+<script>
+fetch('/api/auth/verify')
+  .then(r => { if (!r.ok) throw 0; document.getElementById('auth-veil').remove(); })
+  .catch(() => location.replace('/login?next=' + encodeURIComponent(location.pathname)));
+</script>
 </head>
 <body>
 <div class="app" id="app">
