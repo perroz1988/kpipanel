@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Dropbox
+.dropbox
+Icon
+
+# Dati sensibili — non vanno in repo pubblico
+archive/
+inbox/
+_trash/
+
+# Tool interno (non serve online)
+*.py
+
+# Design system interno
+PRODUCT.md
+DESIGN.md
+.impeccable/
+.claude/

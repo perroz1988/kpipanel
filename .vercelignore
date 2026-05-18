@@ -1,0 +1,9 @@
+archive/
+inbox/
+_trash/
+*.py
+PRODUCT.md
+DESIGN.md
+.impeccable/
+.claude/
+*.pdf
