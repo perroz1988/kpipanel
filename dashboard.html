@@ -2125,7 +2125,6 @@ render();
     state.period = period;
     const r = getRange();
 
-    // render all selected tabs into DOM
     const renders = {
       generale:  () => renderGenerale(r),
       audience:  () => renderAudience(),
@@ -2133,18 +2132,31 @@ render();
       campagne:  () => renderCampagne(),
       keye:      () => renderKeye(),
     };
-    selected.forEach(s => { try{ renders[s.id]?.(); }catch(e){} });
 
-    // small delay for chart paint
-    await new Promise(res => setTimeout(res, 400));
-
+    // process tabs one at a time: show → render → wait for chart paint → capture → hide
     const sections = [];
-    selected.forEach(s => {
+    for (const s of selected) {
       const tabEl = document.getElementById('tab-'+s.id);
-      if(!tabEl) return;
+      if(!tabEl) continue;
+
+      // temporarily show
+      const prevDisplay = tabEl.style.display;
+      tabEl.style.display = 'block';
+
+      // render + resize charts
+      try { renders[s.id]?.(); } catch(e){}
+      Object.values(charts).forEach(c => { try{ c?.resize(); } catch(e){} });
+
+      // wait for chart paint
+      await new Promise(res => setTimeout(res, 500));
+
       // capture canvas dataURLs from LIVE dom before cloning
       const canvasMap = captureCanvasDataURLs(tabEl);
       const clone = tabEl.cloneNode(true);
+
+      // restore visibility
+      tabEl.style.display = prevDisplay;
+
       // remove interactive elements
       clone.querySelectorAll('button,input,select,.print-section-header,[data-print-hide],.period-bar,.flt').forEach(el=>el.remove());
       if(s.mode === 'kpi'){
@@ -2162,7 +2174,7 @@ render();
   <h2 class="export-section-title">${title}</h2>
   ${clone.innerHTML}
 </section>`);
-    });
+    }
 
     // restore state
     state.period = prevPeriod;
