@@ -2080,15 +2080,24 @@ render();
       .join('\n');
   }
 
-  function canvasToImg(el){
-    const canvases = el.querySelectorAll('canvas');
-    canvases.forEach(c => {
-      try {
-        const img = document.createElement('img');
-        img.src = c.toDataURL('image/png');
-        img.style.cssText = 'width:100%;height:auto;display:block';
-        c.parentNode.replaceChild(img, c);
-      } catch(e){}
+  function captureCanvasDataURLs(liveEl){
+    const map = [];
+    liveEl.querySelectorAll('canvas').forEach(c => {
+      try { map.push({ id: c.id, data: c.toDataURL('image/png'), w: c.offsetWidth }); }
+      catch(e){ map.push(null); }
+    });
+    return map;
+  }
+
+  function injectCanvasImgs(cloneEl, map){
+    const canvases = cloneEl.querySelectorAll('canvas');
+    canvases.forEach((c, i) => {
+      const entry = map[i];
+      if(!entry) return;
+      const img = document.createElement('img');
+      img.src = entry.data;
+      img.style.cssText = `width:100%;height:auto;display:block;max-width:${entry.w||600}px`;
+      c.parentNode.replaceChild(img, c);
     });
   }
 
@@ -2133,6 +2142,8 @@ render();
     selected.forEach(s => {
       const tabEl = document.getElementById('tab-'+s.id);
       if(!tabEl) return;
+      // capture canvas dataURLs from LIVE dom before cloning
+      const canvasMap = captureCanvasDataURLs(tabEl);
       const clone = tabEl.cloneNode(true);
       // remove interactive elements
       clone.querySelectorAll('button,input,select,.print-section-header,[data-print-hide],.period-bar,.flt').forEach(el=>el.remove());
@@ -2145,7 +2156,7 @@ render();
           clone.innerHTML = wrap.innerHTML || clone.innerHTML;
         }
       }
-      canvasToImg(clone);
+      injectCanvasImgs(clone, canvasMap);
       const title = tabEl.getAttribute('data-print-title') || s.id;
       sections.push(`<section class="export-section">
   <h2 class="export-section-title">${title}</h2>
@@ -2175,7 +2186,6 @@ body { padding:0; margin:0; }
 .export-section { }
 .export-section-title { font-size:14px; font-weight:700; color:var(--text-2); margin:0 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border); }
 .tab-content { display:block !important; }
-canvas { display:none; }
 </style>
 </head>
 <body>
