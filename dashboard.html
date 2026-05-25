@@ -612,7 +612,7 @@ fetch('/api/auth/verify')
           <th class="sortable" data-c="tipo">Tipo <span class="arr">↕</span></th>
           <th class="sortable num" data-c="impressioni">Impressioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reach">Reach <span class="arr">↕</span></th>
-          <th class="sortable num" data-c="interesse">% Interesse <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="er" title="ER = (Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER % <span class="arr">↕</span></th>
           <th class="sortable num" data-c="ctr">CTR <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reazioni">Reazioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="commenti">Commenti <span class="arr">↕</span></th>
@@ -1280,8 +1280,9 @@ function renderPosts(){
   const sign = dir==='asc'?1:-1;
   // Build reach lookup: impressioni_uniche_org dal foglio metriche, NON disponibile per post
   const sorted = [...pool].sort((a,b)=>{
-    const va = a[col==='reach'?'impressioni':col]; // reach not in post → fallback impressioni for sort
-    const vb = b[col==='reach'?'impressioni':col];
+    const postER = p => p.impressioni > 0 ? (p.reazioni + p.commenti + p.diffusioni) / p.impressioni : 0;
+    const va = col==='reach'?a.impressioni : col==='er'?postER(a) : a[col];
+    const vb = col==='reach'?b.impressioni : col==='er'?postER(b) : b[col];
     if(col==='data') return sign*(a.data_creazione||'').localeCompare(b.data_creazione||'');
     if(col==='titolo' || col==='tipo') return sign*((va||'')+'').localeCompare((vb||'')+'');
     return sign*((va||0)-(vb||0));
@@ -1306,7 +1307,7 @@ function renderPosts(){
       <td>${badge}</td>
       <td class="num">${fmt(p.impressioni)}</td>
       <td class="num" title="Reach non disponibile a livello di singolo post">—</td>
-      <td class="num">${fmtPct(p.interesse*100)}</td>
+      <td class="num" title="(${fmt(p.reazioni)}+${fmt(p.commenti)}+${fmt(p.diffusioni)}) / ${fmt(p.impressioni)}">${p.impressioni>0?fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100):'—'}</td>
       <td class="num">${fmtPct(p.ctr*100)}</td>
       <td class="num">${fmt(p.reazioni)}</td>
       <td class="num">${fmt(p.commenti)}</td>
@@ -1368,7 +1369,7 @@ function renderPostDetail(){
         <h3>Metriche chiave (Totale)</h3>
         <div class="row-2" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
           <div class="metric-big"><div class="lbl">Impressioni</div><div class="val">${fmt(post.impressioni)}</div></div>
-          <div class="metric-big"><div class="lbl">% Interesse</div><div class="val">${fmtPct(post.interesse*100)}</div></div>
+          <div class="metric-big" title="(Reazioni + Commenti + Diffusioni) / Impressioni × 100"><div class="lbl">ER %</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni)/post.impressioni*100):'—'}</div></div>
           <div class="metric-big"><div class="lbl">CTR</div><div class="val">${fmtPct(post.ctr*100)}</div></div>
           <div class="metric-big"><div class="lbl">Reazioni</div><div class="val">${fmt(post.reazioni)}</div></div>
           <div class="metric-big"><div class="lbl">Commenti</div><div class="val">${fmt(post.commenti)}</div></div>
@@ -1396,10 +1397,10 @@ function renderPostDetail(){
 function breakdownTable(matches){
   return `<div class="card" style="margin-top:16px"><h3>Breakdown Organico vs Sponsorizzato vs Totale</h3>
   <table class="tbl"><thead><tr>
-    <th>Tipo</th><th class="num">Impressioni</th><th class="num">Clic</th><th class="num">CTR</th><th class="num">Reazioni</th><th class="num">Commenti</th><th class="num">Diffusioni</th><th class="num">% Interesse</th><th class="num">Nuovi Follower</th>
+    <th>Tipo</th><th class="num">Impressioni</th><th class="num">Clic</th><th class="num">CTR</th><th class="num">Reazioni</th><th class="num">Commenti</th><th class="num">Diffusioni</th><th class="num" title="(Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER %</th><th class="num">Nuovi Follower</th>
   </tr></thead><tbody>${matches.map(p=>{
     const badge = p.tipo==='Sponsorizzato'?'<span class="badge spon">Sponsorizzato</span>':(p.tipo==='Totale'?'<span class="badge tot">Totale</span>':'<span class="badge org">Organico</span>');
-    return `<tr><td>${badge}</td><td class="num">${fmt(p.impressioni)}</td><td class="num">${fmt(p.clic)}</td><td class="num">${fmtPct(p.ctr*100)}</td><td class="num">${fmt(p.reazioni)}</td><td class="num">${fmt(p.commenti)}</td><td class="num">${fmt(p.diffusioni)}</td><td class="num">${fmtPct(p.interesse*100)}</td><td class="num">${fmt(p.nuovi_follower)}</td></tr>`;
+    return `<tr><td>${badge}</td><td class="num">${fmt(p.impressioni)}</td><td class="num">${fmt(p.clic)}</td><td class="num">${fmtPct(p.ctr*100)}</td><td class="num">${fmt(p.reazioni)}</td><td class="num">${fmt(p.commenti)}</td><td class="num">${fmt(p.diffusioni)}</td><td class="num">${p.impressioni>0?fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100):'—'}</td><td class="num">${fmt(p.nuovi_follower)}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 
@@ -1922,7 +1923,7 @@ const REFRESH_PROMPT = `Aggiorna la dashboard RS Italia con archiviazione storic
 function exportPostsCSV(){
   const pool = state._postsPool || [];
   if(!pool.length){ showToast('Nessun post da esportare nel periodo corrente.'); return; }
-  const headers = ['Data','Tipo','Campagna','Autore','Anteprima (primi 100 car.)','Impressioni','Clic','CTR %','Reazioni','Commenti','Diffusioni','% Interesse','Nuovi Follower','Link'];
+  const headers = ['Data','Tipo','Campagna','Autore','Anteprima (primi 100 car.)','Impressioni','Clic','CTR %','Reazioni','Commenti','Diffusioni','ER %','Nuovi Follower','Link'];
   const esc = v => `"${(v==null?'':v+'').replace(/"/g,'""')}"`;
   const rows = pool.map(p=>[
     p.data_creazione||'',
@@ -1936,7 +1937,7 @@ function exportPostsCSV(){
     p.reazioni||0,
     p.commenti||0,
     p.diffusioni||0,
-    p.interesse!=null ? nfDec.format(p.interesse*100) : '',
+    p.impressioni>0 ? nfDec.format((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100) : '',
     p.nuovi_follower||0,
     p.link||'',
   ].map(esc).join(','));
