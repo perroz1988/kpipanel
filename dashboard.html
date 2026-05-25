@@ -1234,12 +1234,16 @@ function renderContenuti(r){
     const eng = reaz+comm+diff;
     const imp = arr.reduce((s,p)=>s+p.impressioni,0);
     const cl = arr.reduce((s,p)=>s+p.clic,0);
+    const erSimple = arr.length>0
+      ? arr.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100:0),0)/arr.length
+      : 0;
     return {
       count: arr.length,
       pedn: arr.length>0 ? eng/arr.length : 0,
       impAvg: arr.length>0 ? imp/arr.length : 0,
       ctrAvg: imp>0 ? cl/imp*100 : 0,
       erAvg:  imp>0 ? eng/imp*100 : 0,
+      erSimple,
     };
   }
   const m = calcM(pool);
@@ -1260,14 +1264,18 @@ function renderContenuti(r){
     { lbl:'CTR medio', val: fmtPct(m.ctrAvg),
       prevVal: hasPrev && mp.ctrAvg>0 ? fmtPct(mp.ctrAvg) : null,
       delta: hasPrev && mp.ctrAvg>0 ? { txt:`${m.ctrAvg>=mp.ctrAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.ctrAvg-mp.ctrAvg))} pp`, cls:m.ctrAvg>=mp.ctrAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
-    { lbl:'Engagement Rate', val: fmtPct(m.erAvg),
+    { lbl:'ER Ponderata', val: fmtPct(m.erAvg),
+      hint:'(Σ reaz+comm+diff) / Σ impressioni × 100',
+      sub: m.erSimple>0 ? `Media semplice: ${fmtPct(m.erSimple)}` : null,
       prevVal: hasPrev && mp.erAvg>0 ? fmtPct(mp.erAvg) : null,
       delta: hasPrev && mp.erAvg>0 ? { txt:`${m.erAvg>=mp.erAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg-mp.erAvg))} pp`, cls:m.erAvg>=mp.erAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
   ];
   document.getElementById('kpiContenuti').innerHTML = cards.map(c=>{
     const prev  = c.prevVal != null ? `<div class="prev-val">sett. prec. <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
-    return `<div class="kpi"><div class="label">${c.lbl}</div><div class="value">${c.val}</div>${prev}${delta}</div>`;
+    const hint  = c.hint ? ` title="${c.hint}"` : '';
+    const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
+    return `<div class="kpi"${hint}><div class="label">${c.lbl}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
   }).join('');
 
   state._postsPool = pool;
