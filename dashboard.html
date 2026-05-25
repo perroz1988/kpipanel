@@ -1005,6 +1005,7 @@ function renderGenerale(r){
 
   const er = sums.impressioni_org>0 ? (sums.reazioni_org+sums.commenti_org+sums.diffusioni_org)/sums.impressioni_org*100 : 0;
   const erPrev = sumsPrev.impressioni_org>0 ? (sumsPrev.reazioni_org+sumsPrev.commenti_org+sumsPrev.diffusioni_org)/sumsPrev.impressioni_org*100 : null;
+  const erSimple = m.length>0 ? m.reduce((s,x)=>s+(x.impressioni_org>0?(x.reazioni_org+x.commenti_org+x.diffusioni_org)/x.impressioni_org*100:0),0)/m.length : 0;
 
   const ctrCamp = sums.impressioni_spon>0 ? sums.clic_spon/sums.impressioni_spon*100 : 0;
   const ctrCampPrev = sumsPrev.impressioni_spon>0 ? sumsPrev.clic_spon/sumsPrev.impressioni_spon*100 : null;
@@ -1021,7 +1022,9 @@ function renderGenerale(r){
     { lbl:'Follower Totali', val: fmt(totFan), prevVal: null, delta:null },
     { lbl:'Crescita Settimanale', val: `+${fmt(cresWeek)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresWeekPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 7 giorni' } },
     { lbl:'Crescita Mensile', val: `+${fmt(cresMonth)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresMonthPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 30 giorni (max disp.)' } },
-    { lbl:'Engagement Rate Organico', val: fmtPct(er),
+    { lbl:'ER Ponderata (Org)', val: fmtPct(er),
+      hint:'Ponderata: (Σ reaz+comm+diff) / Σ impressioni × 100\nSemplice: media delle ER giornaliere',
+      sub: erSimple>0 ? `Media semplice: ${fmtPct(erSimple)}` : null,
       prevVal: erPrev!=null ? fmtPct(erPrev) : null,
       delta: erPrev!=null?{ ...deltaCard(er, erPrev), txt: `${er>=erPrev?'↑':'↓'} ${nfDec.format(Math.abs(er-erPrev))} pp`, cls:er>=erPrev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
     { lbl:'CTR Campagna Generale', val: fmtPct(ctrCamp),
@@ -1037,7 +1040,9 @@ function renderGenerale(r){
   document.getElementById('kpiRow').innerHTML = cards.map(c=>{
     const prev  = c.prevVal != null ? `<div class="prev-val">sett. prec. <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
-    return `<div class="kpi"><div class="label">${c.lbl}</div><div class="value">${c.val}</div>${prev}${delta}</div>`;
+    const iBtn  = c.hint ? `<span title="${c.hint}" style="cursor:help;margin-left:4px;color:var(--text-3);font-size:10px;border:1px solid currentColor;border-radius:50%;padding:0 3px;font-weight:700;vertical-align:middle">i</span>` : '';
+    const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
+    return `<div class="kpi"><div class="label">${c.lbl}${iBtn}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
   }).join('');
 
   const labels = m.map(x=>fmtDate(x.data));
@@ -1265,7 +1270,7 @@ function renderContenuti(r){
       prevVal: hasPrev && mp.ctrAvg>0 ? fmtPct(mp.ctrAvg) : null,
       delta: hasPrev && mp.ctrAvg>0 ? { txt:`${m.ctrAvg>=mp.ctrAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.ctrAvg-mp.ctrAvg))} pp`, cls:m.ctrAvg>=mp.ctrAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
     { lbl:'ER Ponderata', val: fmtPct(m.erAvg),
-      hint:'(Σ reaz+comm+diff) / Σ impressioni × 100',
+      hint:'Ponderata: (Σ reaz+comm+diff) / Σ impressioni × 100\nSemplice: media delle ER per singolo post',
       sub: m.erSimple>0 ? `Media semplice: ${fmtPct(m.erSimple)}` : null,
       prevVal: hasPrev && mp.erAvg>0 ? fmtPct(mp.erAvg) : null,
       delta: hasPrev && mp.erAvg>0 ? { txt:`${m.erAvg>=mp.erAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg-mp.erAvg))} pp`, cls:m.erAvg>=mp.erAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
@@ -1273,9 +1278,9 @@ function renderContenuti(r){
   document.getElementById('kpiContenuti').innerHTML = cards.map(c=>{
     const prev  = c.prevVal != null ? `<div class="prev-val">sett. prec. <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
-    const hint  = c.hint ? ` title="${c.hint}"` : '';
+    const iBtn  = c.hint ? `<span title="${c.hint}" style="cursor:help;margin-left:4px;color:var(--text-3);font-size:10px;border:1px solid currentColor;border-radius:50%;padding:0 3px;font-weight:700;vertical-align:middle">i</span>` : '';
     const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
-    return `<div class="kpi"${hint}><div class="label">${c.lbl}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
+    return `<div class="kpi"><div class="label">${c.lbl}${iBtn}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
   }).join('');
 
   state._postsPool = pool;
