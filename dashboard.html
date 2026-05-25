@@ -1410,12 +1410,11 @@ function renderCampagne(){
     return;
   }
 
-  const r    = getRange();
   const m    = CAMP_DATA.meta;
   const meta = Object.fromEntries((CAMP_DATA.camp_meta||[]).map(c=>[c.id, c]));
 
-  // Filtra righe giornaliere per il periodo selezionato
-  const rows = CAMP_DATA.daily.filter(d => inRange(d.date, r));
+  // Il CSV campagne è un report aggregato per periodo — usa sempre tutti i dati
+  const rows = CAMP_DATA.daily;
 
   // Aggrega per campagna
   const agg = {};
