@@ -911,6 +911,10 @@ function sumCols(rows, cols){
   return out;
 }
 
+function prevLabel(){
+  const map = { settimanale:'vs sett. prec.', mensile:'vs mese prec.', custom:'vs periodo prec.' };
+  return map[state.period] || 'vs periodo prec.';
+}
 function deltaCard(curr, prev){
   if(prev==null || prev===0) return { txt:'—', cls:'neutral', pctTxt:'storico insufficiente' };
   const diff = curr - prev;
@@ -918,7 +922,7 @@ function deltaCard(curr, prev){
   const arr = diff>0?'↑':(diff<0?'↓':'→');
   const cls = diff>0?'pos':(diff<0?'neg':'neutral');
   const sign = diff>0?'+':'';
-  return { txt:`${arr} ${sign}${nfInt.format(Math.abs(diff))} (${nfDec.format(pct)}%)`, cls, pctTxt:'vs periodo precedente' };
+  return { txt:`${arr} ${sign}${nfInt.format(Math.abs(diff))} (${nfDec.format(pct)}%)`, cls, pctTxt: prevLabel() };
 }
 
 /* ============ TAB SWITCH ============ */
@@ -1044,7 +1048,7 @@ function renderGenerale(r){
       delta: deltaCard(sums.clic_tot, sumsPrev.clic_tot) },
   ];
   document.getElementById('kpiRow').innerHTML = cards.map(c=>{
-    const prev  = c.prevVal != null ? `<div class="prev-val">sett. prec. <b>${c.prevVal}</b></div>` : '';
+    const prev  = c.prevVal != null ? `<div class="prev-val">${prevLabel()} <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
     const iBtn  = c.hint ? `<span class="kpi-info">i<span class="kpi-tip">${c.hint}</span></span>` : '';
     const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
@@ -1282,7 +1286,7 @@ function renderContenuti(r){
       delta: hasPrev && mp.erAvg>0 ? { txt:`${m.erAvg>=mp.erAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg-mp.erAvg))} pp`, cls:m.erAvg>=mp.erAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
   ];
   document.getElementById('kpiContenuti').innerHTML = cards.map(c=>{
-    const prev  = c.prevVal != null ? `<div class="prev-val">sett. prec. <b>${c.prevVal}</b></div>` : '';
+    const prev  = c.prevVal != null ? `<div class="prev-val">${prevLabel()} <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
     const iBtn  = c.hint ? `<span class="kpi-info">i<span class="kpi-tip">${c.hint}</span></span>` : '';
     const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
