@@ -630,6 +630,30 @@ fetch('/api/auth/verify')
         <tbody id="postsBody"></tbody>
       </table></div>
     </div>
+
+    <!-- Sezione Creative Paid Krein -->
+    <div class="card" style="margin-top:20px">
+      <h3>Creative Paid — Campagne Krein <span class="hint">Performance per singola creative/ad · solo campagne gestite dal nostro team · escluse altre campagne sulla pagina</span></h3>
+      <div style="overflow-x:auto">
+        <table class="tbl" id="creativeTable">
+          <thead><tr>
+            <th>Campagna</th>
+            <th>Ad / Creative</th>
+            <th class="num">Impressioni</th>
+            <th class="num">Reach</th>
+            <th class="num">Click</th>
+            <th class="num">Reazioni</th>
+            <th class="num">ER</th>
+            <th class="num">Spesa</th>
+            <th class="num">Lead</th>
+          </tr></thead>
+          <tbody id="creativeBody"></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--text-3)">
+        ⚠️ Dati aggregati per l'intero periodo del report (non filtrabile per settimana senza export giornaliero da Campaign Manager)
+      </div>
+    </div>
   </div>
 
   <!-- TAB 4: SINGOLO POST -->
@@ -1062,11 +1086,11 @@ function renderGenerale(r){
       hint:'Click / Impressioni campagne Krein',
       prevVal: null, delta:{ txt:'—', cls:'neutral', pctTxt:'dato aggregato periodo' } },
     { lbl:'Impressioni Periodo', val: fmt(impCombined),
-      hint:'Organiche + campagne Krein',
+      hint:'Perimetro: post organici piano editoriale + campagne Krein.\nEscluse campagne di altri team (Energy Efficiency, RS Group, EMEA).\nNota: paid Krein = totale periodo report (non filtrabile per settimana senza export giornaliero).',
       prevVal: hasPrevG ? fmt(impCombinedPrev) : null,
       delta: deltaCard(impCombined, impCombinedPrev) },
     { lbl:'Clic Periodo', val: fmt(clicCombined),
-      hint:'Organici + campagne Krein',
+      hint:'Perimetro: organici + campagne Krein.\nEscluse campagne di altri team.',
       prevVal: hasPrevG ? fmt(clicCombinedPrev) : null,
       delta: deltaCard(clicCombined, clicCombinedPrev) },
   ];
@@ -1338,6 +1362,7 @@ function renderContenuti(r){
 
   state._postsPool = pool;
   renderPosts();
+  renderCreatives();
 }
 
 function renderPosts(){
@@ -1394,6 +1419,45 @@ function renderPosts(){
       render();
     });
   });
+}
+
+function renderCreatives(){
+  const body = document.getElementById('creativeBody');
+  if(!body) return;
+  const campLabel = id => id==='1056604124' ? 'Amplification Always On (Krein)' : 'MRO Survey (Krein)';
+  if(!CREATIVE_DATA || !CREATIVE_DATA.length){
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:16px">Nessun dato creative disponibile. Carica il Creative Performance CSV in inbox/rs-italia/.</td></tr>`;
+    return;
+  }
+  const totals = CREATIVE_DATA.reduce((a,r)=>({
+    imp: a.imp+r.impressions, reach: a.reach+r.reach, clicks: a.clicks+r.clicks,
+    reactions: a.reactions+r.reactions, spent: a.spent+r.spent, leads: a.leads+r.leads,
+  }), {imp:0,reach:0,clicks:0,reactions:0,spent:0,leads:0});
+
+  body.innerHTML = CREATIVE_DATA.map(r=>{
+    const er = r.impressions>0 ? nfDec.format((r.reactions+r.comments+r.shares)/r.impressions*100) : '—';
+    const url = r.click_url ? `<a href="${escapeHtml(r.click_url)}" target="_blank" style="color:var(--li-blue);font-size:11px;text-decoration:none">↗</a>` : '';
+    return `<tr>
+      <td style="font-size:12px">${escapeHtml(campLabel(r.camp_id))}</td>
+      <td style="font-size:12px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.ad_name||'—')} ${url}</td>
+      <td class="num">${fmt(r.impressions)}</td>
+      <td class="num">${fmt(r.reach)}</td>
+      <td class="num">${fmt(r.clicks)}</td>
+      <td class="num">${fmt(r.reactions)}</td>
+      <td class="num">${er}%</td>
+      <td class="num">£${nfDec.format(r.spent)}</td>
+      <td class="num">${fmt(r.leads)}</td>
+    </tr>`;
+  }).join('') + `<tr style="font-weight:700;background:var(--surface-mid);border-top:2px solid var(--border)">
+    <td colspan="2" style="font-size:12px">Totale Krein</td>
+    <td class="num">${fmt(totals.imp)}</td>
+    <td class="num">${fmt(totals.reach)}</td>
+    <td class="num">${fmt(totals.clicks)}</td>
+    <td class="num">${fmt(totals.reactions)}</td>
+    <td class="num">—</td>
+    <td class="num">£${nfDec.format(totals.spent)}</td>
+    <td class="num">${fmt(totals.leads)}</td>
+  </tr>`;
 }
 
 function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }

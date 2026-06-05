@@ -1053,6 +1053,79 @@ def parse_campaign_csv(path):
     }
 
 
+def parse_creative_csv(path):
+    """Legge il Creative/Ad Performance Report di LinkedIn Campaign Manager.
+    Il file ha righe multi-line: prima riga (23 celle) + testo ad + ultima riga (metriche).
+    Restituisce lista di creative con metriche paid."""
+    with open(path, 'rb') as f: raw = f.read()
+    text = raw.decode('utf-16')
+    lines = text.splitlines()
+
+    header_idx = next((i for i, l in enumerate(lines) if 'Campaign Name' in l and 'Impressions' in l), None)
+    if header_idx is None:
+        raise ValueError('Header non trovato nel Creative Performance CSV')
+
+    def clean(s): return s.strip().strip('"').strip()
+    def fv(cells, i):
+        try: return float(clean(cells[i]).replace(',','').replace('%','')) if i < len(cells) else 0.0
+        except: return 0.0
+
+    # Raggruppa linee per creative (prima riga = 23 celle con Campaign ID numerico)
+    creatives, current = [], None
+    for l in lines[header_idx+1:]:
+        cells = l.split('\t')
+        if len(cells) >= 23 and clean(cells[3]).isdigit():
+            if current: creatives.append(current)
+            current = {'first': cells, 'last': None}
+        elif current and len(cells) >= 50:
+            current['last'] = cells
+    if current: creatives.append(current)
+
+    rows = []
+    for c in creatives:
+        f, l = c['first'], c['last']
+        if not l: continue
+        # Offset: l'ultima riga inizia da col 22 dell'header (Ad Introduction Text)
+        # → click_url=l[3] (header 25), spent=l[6] (28), imp=l[7] (29)...
+        rows.append({
+            'camp_id':    clean(f[3]),
+            'camp_name':  clean(f[4]),
+            'ad_name':    clean(f[19]) if len(f) > 19 else '',
+            'click_url':  clean(l[3])  if len(l) > 3  else '',
+            'spent':      fv(l, 6),
+            'impressions':fv(l, 7),
+            'clicks':     fv(l, 8),
+            'reactions':  fv(l, 12),
+            'comments':   fv(l, 13),
+            'shares':     fv(l, 14),
+            'er':         fv(l, 19),
+            'reach':      fv(l, 42),
+            'leads':      fv(l, 37),
+        })
+    return rows
+
+
+def update_creative_data(creatives):
+    """Sostituisce il blocco CREATIVE_DATA nel dashboard.html."""
+    with open(DASHBOARD, 'r', encoding='utf-8') as f:
+        html = f.read()
+    marker = '\n\nconst CREATIVE_DATA = '
+    end    = ';\n\nconst CAMP_DATA'
+    idx = html.find(marker)
+    if idx < 0:
+        # Prima volta: inserisce prima di CAMP_DATA
+        camp_idx = html.find('\n\nconst CAMP_DATA')
+        if camp_idx < 0: return False
+        html = html[:camp_idx] + marker + json.dumps(creatives, ensure_ascii=False) + ';' + html[camp_idx:]
+    else:
+        end_idx = html.find(end, idx)
+        if end_idx < 0: return False
+        html = html[:idx] + marker + json.dumps(creatives, ensure_ascii=False) + html[end_idx:]
+    with open(DASHBOARD, 'w', encoding='utf-8') as f:
+        f.write(html)
+    return True
+
+
 def update_camp_data(camp_data):
     """Aggiunge / sostituisce il blocco CAMP_DATA nel dashboard.html."""
     with open(DASHBOARD, 'r', encoding='utf-8') as f:
@@ -1258,6 +1331,21 @@ def main():
                     print(f'  CAMP_DATA WARN: {e}')
             else:
                 print('  CAMP_DATA — (nessun CSV in archive/campagne/)')
+
+            # Creative Performance (per-post paid data)
+            creative_files = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_performance.csv')))
+            if creative_files:
+                try:
+                    all_creatives = parse_creative_csv(creative_files[-1])
+                    krein_creatives = [r for r in all_creatives if r['camp_id'] in {'987808183','1056604124'}]
+                    if update_creative_data(krein_creatives):
+                        print(f'  CREATIVE_DATA ✓  ({len(krein_creatives)} creative Krein)')
+                    else:
+                        print('  CREATIVE_DATA WARN: update fallito')
+                except Exception as e:
+                    print(f'  CREATIVE_DATA WARN: {e}')
+            else:
+                print('  CREATIVE_DATA — (nessun creative_performance.csv in archive/campagne/)')
 
     # ══════════════════════════════════════════════════════════════
     # CLIENTE 2 — OPTIMEDIA
