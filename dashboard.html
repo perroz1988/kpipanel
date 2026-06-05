@@ -528,6 +528,10 @@ fetch('/api/auth/verify')
   <div class="tab-content active" id="tab-generale" data-print-title="Report Generale">
     <div class="print-section-header"></div>
     <div class="kpi-row" id="kpiRow"></div>
+    <div id="kpiKreinRow" style="margin-top:8px;padding:10px 14px;background:var(--surface-mid);border:1px solid var(--border);border-radius:8px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Campagne Krein</span>
+      <div id="kpiKreinCells" style="display:flex;gap:20px;flex-wrap:wrap"></div>
+    </div>
     <div class="row-2">
       <div class="card">
         <h3>Andamento Impressioni <span class="hint">organiche vs sponsorizzate</span></h3>
@@ -1009,16 +1013,31 @@ function renderGenerale(r){
   const newFol = f.reduce((s,x)=>s+x.tot,0);
   const newFolPrev = fPrev.reduce((s,x)=>s+x.tot,0);
 
-  const sums = sumCols(m, ['impressioni_org','impressioni_spon','impressioni_tot','clic_tot','clic_spon','reazioni_org','commenti_org','diffusioni_org']);
-  const sumsPrev = sumCols(mPrev, ['impressioni_org','impressioni_spon','impressioni_tot','clic_tot','clic_spon','reazioni_org','commenti_org','diffusioni_org']);
+  const sums = sumCols(m, ['impressioni_org','impressioni_spon','impressioni_tot','clic_tot','clic_org','clic_spon','reazioni_org','commenti_org','diffusioni_org']);
+  const sumsPrev = sumCols(mPrev, ['impressioni_org','impressioni_spon','impressioni_tot','clic_tot','clic_org','clic_spon','reazioni_org','commenti_org','diffusioni_org']);
 
-  const er = sums.impressioni_org>0 ? (sums.reazioni_org+sums.commenti_org+sums.diffusioni_org)/sums.impressioni_org*100 : 0;
-  const erPrev = sumsPrev.impressioni_org>0 ? (sumsPrev.reazioni_org+sumsPrev.commenti_org+sumsPrev.diffusioni_org)/sumsPrev.impressioni_org*100 : null;
+  // Totali campagne Krein (da CAMP_DATA, già filtrato)
+  const camp = (CAMP_DATA.daily||[]).reduce((a,x)=>{
+    a.imp+=x.impressions||0; a.clicks+=x.clicks||0; a.spent+=x.spent||0;
+    a.reactions+=x.reactions||0; a.reach+=x.reach||0; a.leads+=x.leads||0; return a;
+  }, {imp:0,clicks:0,spent:0,reactions:0,reach:0,leads:0});
+
+  // KPI combinati: organico + campagne Krein
+  const impCombined     = sums.impressioni_org + camp.imp;
+  const impCombinedPrev = sumsPrev.impressioni_org; // prev: solo org (no camp prev disponibile)
+  const clicCombined    = sums.clic_org + camp.clicks;
+  const clicCombinedPrev= sumsPrev.clic_org;
+  const reactCombined   = sums.reazioni_org + camp.reactions;
+  const reactCombinedPrev= sumsPrev.reazioni_org;
+
+  const er = impCombined>0 ? (reactCombined+sums.commenti_org+sums.diffusioni_org)/impCombined*100 : 0;
+  const erPrev = impCombinedPrev>0 ? (reactCombinedPrev+sumsPrev.commenti_org+sumsPrev.diffusioni_org)/impCombinedPrev*100 : null;
   const postsR = postsTotaleAll().filter(p=>p.data_creazione && inRange(p.data_creazione, r));
   const erSimple = postsR.length>0 ? postsR.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100:0),0)/postsR.length : 0;
 
-  const ctrCamp = sums.impressioni_spon>0 ? sums.clic_spon/sums.impressioni_spon*100 : 0;
-  const ctrCampPrev = sumsPrev.impressioni_spon>0 ? sumsPrev.clic_spon/sumsPrev.impressioni_spon*100 : null;
+  // CTR Krein (solo campagne nostre)
+  const ctrCamp = camp.imp>0 ? camp.clicks/camp.imp*100 : 0;
+  const ctrCampPrev = null; // camp prev non disponibile per periodo
 
   // Crescita settimanale e mensile (sul totale storico, finestre fisse)
   const allF = RS_DATA.followers_daily.slice().sort((a,b)=>a.data.localeCompare(b.data));
@@ -1033,19 +1052,21 @@ function renderGenerale(r){
     { lbl:'Crescita Settimanale', val: `+${fmt(cresWeek)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresWeekPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 7 giorni' } },
     { lbl:'Crescita Mensile', val: `+${fmt(cresMonth)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresMonthPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 30 giorni (max disp.)' } },
     { lbl:'Engagement Rate', val: erSimple>0 ? fmtPct(erSimple) : fmtPct(er),
-      hint:'Semplice: media delle ER per singolo post\nPonderata: (Σ reaz+comm+diff) / Σ impressioni × 100',
+      hint:'Calcolato su organico + campagne Krein\nSemplice: media ER per post · Ponderata: (Σ reaz+comm+diff) / Σ impressioni × 100',
       sub: erSimple>0 ? `Ponderata: ${fmtPct(er)}` : null,
       prevVal: erPrev!=null ? fmtPct(erPrev) : null,
       delta: erPrev!=null?{ txt: `${er>=erPrev?'↑':'↓'} ${nfDec.format(Math.abs(er-erPrev))} pp`, cls:er>=erPrev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
-    { lbl:'CTR Campagna Generale', val: fmtPct(ctrCamp),
-      prevVal: ctrCampPrev!=null ? fmtPct(ctrCampPrev) : null,
-      delta: ctrCampPrev!=null?{ txt:`${ctrCamp>=ctrCampPrev?'↑':'↓'} ${nfDec.format(Math.abs(ctrCamp-ctrCampPrev))} pp`, cls:ctrCamp>=ctrCampPrev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
-    { lbl:'Impressioni Periodo', val: fmt(sums.impressioni_tot),
-      prevVal: hasPrevG ? fmt(sumsPrev.impressioni_tot) : null,
-      delta: deltaCard(sums.impressioni_tot, sumsPrev.impressioni_tot) },
-    { lbl:'Clic Periodo', val: fmt(sums.clic_tot),
-      prevVal: hasPrevG ? fmt(sumsPrev.clic_tot) : null,
-      delta: deltaCard(sums.clic_tot, sumsPrev.clic_tot) },
+    { lbl:'CTR Krein', val: fmtPct(ctrCamp),
+      hint:'Click / Impressioni campagne Krein',
+      prevVal: null, delta:{ txt:'—', cls:'neutral', pctTxt:'dato aggregato periodo' } },
+    { lbl:'Impressioni Periodo', val: fmt(impCombined),
+      hint:'Organiche + campagne Krein',
+      prevVal: hasPrevG ? fmt(impCombinedPrev) : null,
+      delta: deltaCard(impCombined, impCombinedPrev) },
+    { lbl:'Clic Periodo', val: fmt(clicCombined),
+      hint:'Organici + campagne Krein',
+      prevVal: hasPrevG ? fmt(clicCombinedPrev) : null,
+      delta: deltaCard(clicCombined, clicCombinedPrev) },
   ];
   document.getElementById('kpiRow').innerHTML = cards.map(c=>{
     const prev  = c.prevVal != null ? `<div class="prev-val">${prevLabel()} <b>${c.prevVal}</b></div>` : '';
@@ -1054,6 +1075,26 @@ function renderGenerale(r){
     const sub   = c.sub  ? `<div class="prev-val" style="margin-top:3px">${c.sub}</div>` : '';
     return `<div class="kpi"><div class="label">${c.lbl}${iBtn}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
   }).join('');
+
+  // Riga campagne Krein (piccola, sotto le card principali)
+  const campCpc = camp.clicks>0 ? camp.spent/camp.clicks : 0;
+  const campCpm = camp.imp>0 ? camp.spent/camp.imp*1000 : 0;
+  const kreinCells = [
+    {k:'Spesa',       v:`£${nfDec.format(camp.spent)}`},
+    {k:'Impressioni', v:fmt(camp.imp)},
+    {k:'Click',       v:fmt(camp.clicks)},
+    {k:'CTR',         v:fmtPct(ctrCamp)},
+    {k:'CPC',         v:`£${nfDec.format(campCpc)}`},
+    {k:'CPM',         v:`£${nfDec.format(campCpm)}`},
+    {k:'Reach',       v:fmt(camp.reach)},
+    {k:'Lead',        v:fmt(camp.leads)},
+  ];
+  document.getElementById('kpiKreinCells').innerHTML = kreinCells.map(x=>
+    `<div style="text-align:center">
+      <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap">${x.k}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">${x.v}</div>
+    </div>`
+  ).join('');
 
   const labels = m.map(x=>fmtDate(x.data));
 
