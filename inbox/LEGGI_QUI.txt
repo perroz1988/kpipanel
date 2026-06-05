@@ -1,0 +1,56 @@
+━━━ COME AGGIORNARE LE DASHBOARD ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Metti i file nelle cartelle giuste, poi lancia:
+
+    python3 update.py
+
+
+━━━ RS ITALIA (ogni settimana) ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Cartella: inbox/rs-italia/
+
+  1. LinkedIn Page Analytics → pagina RS Italia:
+     • Tab "Contenuti" → Esporta → XLS
+     • Tab "Follower"  → Esporta → XLS
+
+  2. LinkedIn Campaign Manager:
+     • Reports → Ad Performance → Esporta CSV
+       (periodo: da inizio campagna ad oggi)
+
+  Il nome del file non conta, lo script lo riconosce da solo.
+
+
+━━━ OPTIMEDIA (ogni settimana/mese) ━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Cartella: inbox/optimedia/Facebook/    ← esport da Facebook
+            inbox/optimedia/Instagram/  ← esport da Instagram
+
+  Da Meta Business Suite scarica questi file con ESATTAMENTE
+  questi nomi:
+
+  Facebook:
+    Views.csv          Viewers.csv        Interactions.csv
+    Follows.csv        Link clicks.csv    Visits.csv
+    Audience FB.csv
+
+  Instagram:
+    Views.csv          Reach.csv          Interactions.csv
+    Follows.csv        Link clicks.csv    Visits.csv
+    Audience IG.csv
+
+
+━━━ COMANDI ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  python3 update.py              # aggiorna tutto
+  python3 update.py --rs-only    # solo RS Italia
+  python3 update.py --opt-only   # solo Optimedia
+  python3 update.py --no-inbox   # rigenera senza nuovi file
+  python3 update.py --no-keye    # salta fetch Keye
+
+  Lo script:
+  ✓ Archivia i file da inbox/
+  ✓ Scarica snapshot Keye (RS Italia)
+  ✓ Rigenera dashboard.html e optimedia.html
+  ✓ Commit + push → deploy automatico su Vercel
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
