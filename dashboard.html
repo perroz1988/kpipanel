@@ -11,6 +11,9 @@
   --li-blue: oklch(44% 0.168 255.5);
   --li-blue-dark: oklch(28% 0.148 255.5);
   --spon: oklch(62% 0.175 49);
+  --krein: oklch(42% 0.14 300);        /* viola-indigo: campagne Krein */
+  --krein-lt: oklch(96.5% 0.018 300);  /* bg tint Krein */
+  --krein-border: oklch(88% 0.04 300); /* bordo Krein */
   /* State semantics */
   --pos: oklch(36% 0.108 155);
   --neg: oklch(40% 0.19 25);
@@ -534,9 +537,12 @@ fetch('/api/auth/verify')
   <div class="tab-content active" id="tab-generale" data-print-title="Report Generale">
     <div class="print-section-header"></div>
     <div class="kpi-row" id="kpiRow"></div>
-    <div id="kpiKreinRow" style="margin-top:8px;padding:10px 14px;background:var(--surface-mid);border:1px solid var(--border);border-radius:8px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
-      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;white-space:nowrap">Campagne Krein · periodo report completo</span>
-      <div id="kpiKreinCells" style="display:flex;gap:20px;flex-wrap:wrap"></div>
+    <div style="margin-top:12px">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.55px;color:var(--krein);margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--krein)"></span>
+        Campagne Krein · periodo report completo
+      </div>
+      <div id="kpiKreinCells" class="kpi-row" style="grid-template-columns:repeat(8,1fr)"></div>
     </div>
     <div class="row-2">
       <div class="card">
@@ -1134,25 +1140,26 @@ function renderGenerale(r){
     return `<div class="kpi"><div class="label">${c.lbl}${iBtn}</div><div class="value">${c.val}</div>${sub}${prev}${delta}</div>`;
   }).join('');
 
-  // Riga campagne Krein (piccola, sotto le card principali)
+  // Card campagne Krein
   const campCpc = camp.clicks>0 ? camp.spent/camp.clicks : 0;
   const campCpm = camp.imp>0 ? camp.spent/camp.imp*1000 : 0;
-  const kreinCells = [
-    {k:'Spesa',       v:`£${nfDec.format(camp.spent)}`},
-    {k:'Impressioni', v:fmt(camp.imp)},
-    {k:'Click',       v:fmt(camp.clicks)},
-    {k:'CTR',         v:fmtPct(ctrCamp)},
-    {k:'CPC',         v:`£${nfDec.format(campCpc)}`},
-    {k:'CPM',         v:`£${nfDec.format(campCpm)}`},
-    {k:'Reach',       v:fmt(camp.reach)},
-    {k:'Lead',        v:fmt(camp.leads)},
+  const kreinCards = [
+    {k:'Spesa',       v:`£${nfDec.format(camp.spent)}`,  hint:'Budget speso campagne Krein nel periodo report'},
+    {k:'Impressioni', v:fmt(camp.imp),                    hint:'Impressioni paid campagne Krein'},
+    {k:'Reach',       v:fmt(camp.reach),                  hint:'Persone uniche raggiunte'},
+    {k:'Click',       v:fmt(camp.clicks),                 hint:'Click totali sugli annunci'},
+    {k:'CTR',         v:fmtPct(ctrCamp),                  hint:'Click Through Rate = Click / Impressioni'},
+    {k:'CPC',         v:`£${nfDec.format(campCpc)}`,     hint:'Costo per Click'},
+    {k:'CPM',         v:`£${nfDec.format(campCpm)}`,     hint:'Costo per 1.000 Impressioni'},
+    {k:'Lead',        v:fmt(camp.leads),                  hint:'Lead generati dalle campagne'},
   ];
-  document.getElementById('kpiKreinCells').innerHTML = kreinCells.map(x=>
-    `<div style="text-align:center">
-      <div style="font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.3px;white-space:nowrap">${x.k}</div>
-      <div style="font-size:13px;font-weight:700;color:var(--text);font-variant-numeric:tabular-nums">${x.v}</div>
-    </div>`
-  ).join('');
+  document.getElementById('kpiKreinCells').innerHTML = kreinCards.map(x=>{
+    const iBtn = `<span class="kpi-info" style="border-color:var(--krein-border);color:var(--krein)">i<span class="kpi-tip">${x.hint}</span></span>`;
+    return `<div class="kpi" style="background:var(--krein-lt);border-color:var(--krein-border);min-height:0;padding:12px 14px 14px">
+      <div class="label" style="color:var(--krein)">${x.k} ${iBtn}</div>
+      <div class="value" style="font-size:20px;color:var(--krein)">${x.v}</div>
+    </div>`;
+  }).join('');
 
   const labels = m.map(x=>fmtDate(x.data));
 
