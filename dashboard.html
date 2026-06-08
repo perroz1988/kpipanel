@@ -1413,48 +1413,94 @@ function renderPosts(){
   const pool = state._postsPool || [];
   const { col, dir } = state.postsSort;
   const sign = dir==='asc'?1:-1;
-  // Build reach lookup: impressioni_uniche_org dal foglio metriche, NON disponibile per post
-  const sorted = [...pool].sort((a,b)=>{
-    const postER = p => p.impressioni > 0 ? (p.reazioni + p.commenti + p.diffusioni) / p.impressioni : 0;
-    const va = col==='reach'?a.impressioni : col==='er'?postER(a) : a[col];
-    const vb = col==='reach'?b.impressioni : col==='er'?postER(b) : b[col];
-    if(col==='data') return sign*(a.data_creazione||'').localeCompare(b.data_creazione||'');
-    if(col==='titolo' || col==='tipo') return sign*((va||'')+'').localeCompare((vb||'')+'');
-    return sign*((va||0)-(vb||0));
-  });
-  // Update header sort indicators
-  document.querySelectorAll('#postsTable th').forEach(th=>{
-    th.classList.remove('asc','desc');
-    if(th.dataset.c===col){
-      th.classList.add(dir);
-      const arr = th.querySelector('.arr'); if(arr) arr.textContent = dir==='asc'?'↑':'↓';
-    } else {
-      const arr = th.querySelector('.arr'); if(arr) arr.textContent = '↕';
-    }
-  });
-  document.getElementById('postsBody').innerHTML = sorted.map(p=>{
-    const preview = (p.titolo||'').replace(/\s+/g,' ').slice(0,80) + ((p.titolo||'').length>80?'…':'');
-    const badge = p.tipo==='Sponsorizzato'?'<span class="badge spon">Sponsorizzato</span>':(p.tipo==='Totale'?'<span class="badge tot">Totale</span>':'<span class="badge org">Organico</span>');
-    return `<tr class="clickable" data-link="${p.link}" data-tipo="${p.tipo}">
-      <td>${thumbHTML(p,'sm')}</td>
-      <td>${fmtDate(p.data_creazione)}</td>
-      <td><div class="text-prev">${escapeHtml(preview)}</div></td>
-      <td>${badge}</td>
-      <td class="num">${fmt(p.impressioni)}</td>
-      <td class="num" title="Reach non disponibile a livello di singolo post">—</td>
-      <td class="num" title="(${fmt(p.reazioni)}+${fmt(p.commenti)}+${fmt(p.diffusioni)}) / ${fmt(p.impressioni)}">${p.impressioni>0?fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100):'—'}</td>
-      <td class="num">${fmtPct(p.ctr*100)}</td>
-      <td class="num">${fmt(p.reazioni)}</td>
-      <td class="num">${fmt(p.commenti)}</td>
-      <td class="num">${fmt(p.diffusioni)}</td>
+
+  // Raggruppa per tipo
+  const byTipo = {Organico: [], Sponsorizzato: [], Totale: []};
+  for(const p of pool){
+    if(byTipo[p.tipo]) byTipo[p.tipo].push(p);
+  }
+
+  // Funzione aggregati
+  const aggTipo = (posts) => {
+    if(!posts.length) return {imp:0, reach:0, ctr:0, er:0, reazioni:0, commenti:0, diffusioni:0};
+    const agg = posts.reduce((a,p)=>({
+      imp: a.imp+p.impressioni,
+      ctr: a.ctr+p.clic,
+      reazioni: a.reazioni+p.reazioni,
+      commenti: a.commenti+p.commenti,
+      diffusioni: a.diffusioni+p.diffusioni,
+    }), {imp:0,reach:0,ctr:0,reazioni:0,commenti:0,diffusioni:0});
+    return {
+      ...agg,
+      er: agg.imp>0 ? (agg.reazioni+agg.commenti+agg.diffusioni)/agg.imp*100 : 0,
+      ctr_pct: agg.imp>0 ? agg.ctr/agg.imp*100 : 0
+    };
+  };
+
+  // Ordina post dentro ogni tipo
+  for(const tipo in byTipo){
+    byTipo[tipo].sort((a,b)=>{
+      const postER = p => p.impressioni > 0 ? (p.reazioni + p.commenti + p.diffusioni) / p.impressioni : 0;
+      const va = col==='reach'?a.impressioni : col==='er'?postER(a) : a[col];
+      const vb = col==='reach'?b.impressioni : col==='er'?postER(b) : b[col];
+      if(col==='data') return sign*(a.data_creazione||'').localeCompare(b.data_creazione||'');
+      if(col==='titolo') return sign*((va||'')+'').localeCompare((vb||'')+'');
+      return sign*((va||0)-(vb||0));
+    });
+  }
+
+  // Renderizza tabella con righe collassabili per tipo
+  let html = '';
+  let rowId = 0;
+  const tipiOrder = ['Organico', 'Sponsorizzato', 'Totale'];
+
+  for(const tipo of tipiOrder){
+    const posts = byTipo[tipo];
+    if(!posts.length) continue;
+
+    const agg = aggTipo(posts);
+    const id = 'posts_' + (rowId++);
+
+    // Riga tipo (collassabile)
+    const badgeColor = tipo==='Sponsorizzato'?'spon':(tipo==='Totale'?'tot':'org');
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='none'?'table-row':'none';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+      <td style="padding:12px 8px"><span class="badge ${badgeColor}">${tipo}</span></td>
+      <td colspan="2" style="font-size:12px;color:var(--text-2)">${posts.length} post</td>
+      <td class="num">${fmt(agg.imp)}</td>
+      <td class="num">—</td>
+      <td class="num">${fmtPct(agg.er)}</td>
+      <td class="num">${fmtPct(agg.ctr_pct)}</td>
+      <td class="num">${fmt(agg.reazioni)}</td>
+      <td class="num">${fmt(agg.commenti)}</td>
+      <td class="num">${fmt(agg.diffusioni)}</td>
     </tr>`;
-  }).join('') || `<tr><td colspan="11" style="text-align:center;color:var(--text-2);padding:24px">Nessun post nel periodo selezionato.</td></tr>`;
+
+    // Righe singoli post
+    for(const p of posts){
+      const preview = (p.titolo||'').replace(/\s+/g,' ').slice(0,80) + ((p.titolo||'').length>80?'…':'');
+      const er = p.impressioni>0 ? fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100) : '—';
+      html += `<tr id="${id}" style="background:var(--surface);font-size:11px;color:var(--text-2);cursor:pointer" class="post-row" data-link="${p.link}" data-tipo="${p.tipo}">
+        <td>${thumbHTML(p,'sm')}</td>
+        <td style="font-size:11px">${fmtDate(p.data_creazione)}</td>
+        <td><div class="text-prev" style="max-width:300px">${escapeHtml(preview)}</div></td>
+        <td class="num">${fmt(p.impressioni)}</td>
+        <td class="num">—</td>
+        <td class="num">${er}</td>
+        <td class="num">${fmtPct(p.ctr*100)}</td>
+        <td class="num">${fmt(p.reazioni)}</td>
+        <td class="num">${fmt(p.commenti)}</td>
+        <td class="num">${fmt(p.diffusioni)}</td>
+      </tr>`;
+    }
+  }
+
+  document.getElementById('postsBody').innerHTML = html || `<tr><td colspan="11" style="text-align:center;color:var(--text-2);padding:24px">Nessun post nel periodo selezionato.</td></tr>`;
+
   // Row click → drill-down
-  document.querySelectorAll('#postsBody tr.clickable').forEach(tr=>{
+  document.querySelectorAll('#postsBody tr.post-row').forEach(tr=>{
     tr.addEventListener('click', ()=>{
       state.selectedPostLink = tr.dataset.link;
       state.selectedPostTipo = tr.dataset.tipo;
-      // switch to tab
       document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
       document.querySelector('.tab[data-tab="post"]').classList.add('active');
