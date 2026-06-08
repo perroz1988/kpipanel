@@ -1795,13 +1795,32 @@ function renderAmplificazioniPost(post){
 }
 
 function breakdownTable(matches){
+  const org = matches.find(p=>p.tipo==='Organico');
+  const spon = matches.find(p=>p.tipo==='Sponsorizzato');
+
+  const renderRow = (tipo, p) => {
+    if(!p) return '';
+    const badge = tipo==='Sponsorizzato'?'<span class="badge spon">Sponsorizzato</span>':(tipo==='Totale'?'<span class="badge tot">Totale</span>':'<span class="badge org">Organico</span>');
+    const ctr = p.impressioni>0 ? (p.clic||0)/p.impressioni*100 : 0;
+    return `<tr><td>${badge}</td><td class="num">${fmt(p.impressioni)}</td><td class="num">${fmt(p.clic||0)}</td><td class="num">${fmtPct(ctr)}</td><td class="num">${fmt(p.reazioni||0)}</td><td class="num">${fmt(p.commenti||0)}</td><td class="num">${fmt(p.diffusioni||0)}</td><td class="num">${p.impressioni>0?fmtPct(((p.reazioni||0)+(p.commenti||0)+(p.diffusioni||0))/p.impressioni*100):'—'}</td><td class="num">${fmt(p.nuovi_follower||0)}</td></tr>`;
+  };
+
+  // Calcola Totale aggregato
+  const totImp = (org?.impressioni||0) + (spon?.impressioni||0);
+  const totClick = (org?.clic||0) + (spon?.clic||0);
+  const totale = {
+    impressioni: totImp,
+    clic: totClick,
+    reazioni: (org?.reazioni||0) + (spon?.reazioni||0),
+    commenti: (org?.commenti||0) + (spon?.commenti||0),
+    diffusioni: (org?.diffusioni||0) + (spon?.diffusioni||0),
+    nuovi_follower: (org?.nuovi_follower||0) + (spon?.nuovi_follower||0)
+  };
+
   return `<div class="card" style="margin-top:16px"><h3>Breakdown Organico vs Sponsorizzato vs Totale</h3>
   <table class="tbl"><thead><tr>
     <th>Tipo</th><th class="num">Impressioni</th><th class="num">Clic</th><th class="num">CTR</th><th class="num">Reazioni</th><th class="num">Commenti</th><th class="num">Diffusioni</th><th class="num" title="(Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER %</th><th class="num">Nuovi Follower</th>
-  </tr></thead><tbody>${matches.map(p=>{
-    const badge = p.tipo==='Sponsorizzato'?'<span class="badge spon">Sponsorizzato</span>':(p.tipo==='Totale'?'<span class="badge tot">Totale</span>':'<span class="badge org">Organico</span>');
-    return `<tr><td>${badge}</td><td class="num">${fmt(p.impressioni)}</td><td class="num">${fmt(p.clic)}</td><td class="num">${fmtPct(p.ctr*100)}</td><td class="num">${fmt(p.reazioni)}</td><td class="num">${fmt(p.commenti)}</td><td class="num">${fmt(p.diffusioni)}</td><td class="num">${p.impressioni>0?fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100):'—'}</td><td class="num">${fmt(p.nuovi_follower)}</td></tr>`;
-  }).join('')}</tbody></table></div>`;
+  </tr></thead><tbody>${renderRow('Organico',org)}${renderRow('Sponsorizzato',spon)}${renderRow('Totale',totale)}</tbody></table></div>`;
 }
 
 /* ---------- TAB 5: CAMPAGNE (filtrata per periodo) ---------- */
