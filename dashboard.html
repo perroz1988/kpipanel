@@ -1356,6 +1356,24 @@ function renderContenuti(r){
         const cNorm = normalize(c.post_text || '');
         return cNorm.includes(pNorm.substring(0,30)) || pNorm.includes(cNorm.substring(0,30));
       });
+    }).map(p => {
+      // Calcola impressioni dalle creatività
+      const pNorm = normalize(p.titolo);
+      const amplifCreatives = (CREATIVE_DATA||[]).filter(c => {
+        const cNorm = normalize(c.post_text || '');
+        return cNorm.includes(pNorm.substring(0,30)) || pNorm.includes(cNorm.substring(0,30));
+      });
+      const amplifImpr = amplifCreatives.reduce((s,c)=>s+(c.impressions||0), 0);
+
+      return {
+        ...p,
+        tipo: 'Sponsorizzato',  // Cambia tipo
+        impressioni: p.impressioni + amplifImpr,  // Aggrega impressioni
+        clic: p.clic + amplifCreatives.reduce((s,c)=>s+(c.clicks||0), 0),
+        reazioni: p.reazioni + amplifCreatives.reduce((s,c)=>s+(c.reactions||0), 0),
+        commenti: p.commenti + amplifCreatives.reduce((s,c)=>s+(c.comments||0), 0),
+        diffusioni: p.diffusioni + amplifCreatives.reduce((s,c)=>s+(c.shares||0), 0),
+      };
     });
     poolAll = [...new Map([...poolAll, ...postsWithAmplif].map(p=>[p.link, p])).values()];
   }
