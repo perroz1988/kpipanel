@@ -1493,8 +1493,9 @@ function renderPosts(){
 
     // Riga tipo (collassabile) - stessa struttura delle righe post
     const badgeColor = tipo==='Sponsorizzato'?'spon':(tipo==='Totale'?'tot':'org');
-    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='none'?'table-row':'none';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
-      <td></td>
+    const chevronId = id + '_chev';
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');const chev=document.getElementById('${chevronId}');el.style.display=el.style.display==='none'?'table-row':'none';chev.textContent=chev.textContent==='▼'?'▶':'▼';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+      <td><span id="${chevronId}" style="color:var(--text-3);user-select:none">▼</span></td>
       <td style="font-size:12px"><span class="badge ${badgeColor}">${tipo}</span></td>
       <td style="font-size:12px;color:var(--text-2)">${posts.length} post</td>
       <td class="num">${fmt(agg.imp)}</td>
@@ -1589,8 +1590,9 @@ function renderCreatives(){
     const ctr = agg.imp>0 ? nfDec.format(agg.clicks/agg.imp*100) : '—';
 
     // Riga principale (post)
-    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='none'?'table-row':'none';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
-      <td style="font-size:12px">📌 Post</td>
+    const chevronId = id + '_chev';
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');const chev=document.getElementById('${chevronId}');el.style.display=el.style.display==='none'?'table-row':'none';chev.textContent=chev.textContent==='▼'?'▶':'▼';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+      <td style="font-size:12px"><span id="${chevronId}" style="color:var(--text-3);user-select:none;margin-right:6px">▼</span>📌 Post</td>
       <td style="font-size:12px;max-width:300px;line-height:1.4">${escapeHtml(displayText)}${displayText.length>=180?'…':''}</td>
       <td class="num">${fmt(agg.imp)}</td>
       <td class="num">${fmt(agg.reach)}</td>
