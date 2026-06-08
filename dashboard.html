@@ -1648,6 +1648,7 @@ function renderPostDetail(){
       </div>
     </div>
     ${matches.length>1?breakdownTable(matches):''}
+    ${renderAmplificazioniPost(post)}
     <div class="card" style="margin-top:16px">
       <h3>Testo completo del post</h3>
       <div class="copy">${escapeHtml(post.titolo||'')}</div>
@@ -1662,6 +1663,68 @@ function renderPostDetail(){
     render();
   });
 }
+function renderAmplificazioniPost(post){
+  // Trova creatività che amplificano questo post
+  const normalizeText = t => (t||'').replace(/\s+/g,' ').trim().substring(0,60);
+  const postTitle = normalizeText(post.titolo);
+
+  const amplifications = (CREATIVE_DATA||[]).filter(c =>
+    c.post_text && normalizeText(c.post_text).substring(0,40) === postTitle.substring(0,40)
+  );
+
+  if(!amplifications.length) return '';
+
+  // Raggruppa per campagna
+  const byCamp = {
+    '987808183': [],
+    '1056604124': []
+  };
+  const campNames = {
+    '987808183': '🎯 MRO Survey (Krein)',
+    '1056604124': '⚡ Amplification Always On (Krein)'
+  };
+
+  for(const c of amplifications){
+    if(byCamp[c.camp_id]) byCamp[c.camp_id].push(c);
+  }
+
+  let html = '<div class="card" style="margin-top:16px"><h3>📢 Amplificazione per campagna</h3>';
+
+  for(const campId of Object.keys(byCamp)){
+    const creatives = byCamp[campId];
+    if(!creatives.length) continue;
+
+    const agg = creatives.reduce((a,c)=>({
+      spent: a.spent+c.spent,
+      imp: a.imp+c.impressions,
+      clicks: a.clicks+c.clicks,
+      reazioni: a.reazioni+c.reactions,
+      commenti: a.commenti+c.comments,
+      shares: a.shares+c.shares,
+    }), {spent:0, imp:0, clicks:0, reazioni:0, commenti:0, shares:0});
+
+    const er = agg.imp>0 ? fmtPct((agg.reazioni+agg.commenti+agg.shares)/agg.imp*100) : '—';
+    const ctr = agg.imp>0 ? fmtPct(agg.clicks/agg.imp*100) : '—';
+
+    html += `<div style="margin-top:12px;padding:12px;background:var(--surface-lt);border-radius:8px">
+      <div style="font-weight:600;margin-bottom:8px">${campNames[campId]}</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:8px;font-size:12px">
+        <div><span style="color:var(--text-2)">Creatività:</span> <b>${creatives.length}</b></div>
+        <div><span style="color:var(--text-2)">Speso:</span> <b>£${nfDec.format(agg.spent)}</b></div>
+        <div><span style="color:var(--text-2)">Imp.:</span> <b>${fmt(agg.imp)}</b></div>
+        <div><span style="color:var(--text-2)">ER:</span> <b>${er}</b></div>
+        <div><span style="color:var(--text-2)">CTR:</span> <b>${ctr}</b></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-3)">
+        Reazioni: ${fmt(agg.reazioni)} | Commenti: ${fmt(agg.commenti)} | Condivisioni: ${fmt(agg.shares)}
+      </div>
+    </div>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
 function breakdownTable(matches){
   return `<div class="card" style="margin-top:16px"><h3>Breakdown Organico vs Sponsorizzato vs Totale</h3>
   <table class="tbl"><thead><tr>
