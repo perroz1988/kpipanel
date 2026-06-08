@@ -1494,7 +1494,7 @@ function renderPosts(){
     // Riga tipo (collassabile) - stessa struttura delle righe post
     const badgeColor = tipo==='Sponsorizzato'?'spon':(tipo==='Totale'?'tot':'org');
     const chevronId = id + '_chev';
-    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');const chev=document.getElementById('${chevronId}');el.style.display=el.style.display==='none'?'table-row':'none';chev.textContent=chev.textContent==='▼'?'▶':'▼';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const els=document.querySelectorAll('tr.${id}');const show=els[0]?.style.display==='none';els.forEach(el=>el.style.display=show?'table-row':'none');const chev=document.getElementById('${chevronId}');chev.textContent=show?'▼':'▶';this.style.fontWeight=show?'600':'700'">
       <td><span id="${chevronId}" style="color:var(--text-3);user-select:none">▼</span></td>
       <td style="font-size:12px"><span class="badge ${badgeColor}">${tipo}</span></td>
       <td style="font-size:12px;color:var(--text-2)">${posts.length} post</td>
@@ -1511,7 +1511,7 @@ function renderPosts(){
     for(const p of posts){
       const preview = (p.titolo||'').replace(/\s+/g,' ').slice(0,80) + ((p.titolo||'').length>80?'…':'');
       const er = p.impressioni>0 ? fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100) : '—';
-      html += `<tr id="${id}" style="background:var(--surface);font-size:11px;color:var(--text-2);cursor:pointer" class="post-row" data-link="${p.link}" data-tipo="${p.tipo}">
+      html += `<tr class="post-row ${id}" style="background:var(--surface);font-size:11px;color:var(--text-2);cursor:pointer" data-link="${p.link}" data-tipo="${p.tipo}">
         <td>${thumbHTML(p,'sm')}</td>
         <td style="font-size:11px">${fmtDate(p.data_creazione)}</td>
         <td><div class="text-prev" style="max-width:300px">${escapeHtml(preview)}</div></td>
@@ -1591,7 +1591,7 @@ function renderCreatives(){
 
     // Riga principale (post)
     const chevronId = id + '_chev';
-    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');const chev=document.getElementById('${chevronId}');el.style.display=el.style.display==='none'?'table-row':'none';chev.textContent=chev.textContent==='▼'?'▶':'▼';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const els=document.querySelectorAll('tr.${id}');const show=els[0]?.style.display==='none';els.forEach(el=>el.style.display=show?'table-row':'none');const chev=document.getElementById('${chevronId}');chev.textContent=show?'▼':'▶';this.style.fontWeight=show?'600':'700'">
       <td style="font-size:12px"><span id="${chevronId}" style="color:var(--text-3);user-select:none;margin-right:6px">▼</span>📌 Post</td>
       <td style="font-size:12px;max-width:300px;line-height:1.4">${escapeHtml(displayText)}${displayText.length>=180?'…':''}</td>
       <td class="num">${fmt(agg.imp)}</td>
@@ -1609,7 +1609,7 @@ function renderCreatives(){
       const eng_c = r.reactions+r.comments+r.shares;
       const er_c = r.impressions>0 ? nfDec.format(eng_c/r.impressions*100) : '—';
       const ctr_c = r.impressions>0 ? nfDec.format(r.clicks/r.impressions*100) : '—';
-      html += `<tr id="${id}" style="background:var(--surface);font-size:11px;color:var(--text-2)">
+      html += `<tr class="${id}" style="background:var(--surface);font-size:11px;color:var(--text-2)">
         <td style="padding-left:32px">${escapeHtml(campLabel(r.camp_id))}</td>
         <td style="max-width:300px">${escapeHtml((r.ad_name||'—').substring(0,80))}</td>
         <td class="num">${fmt(r.impressions)}</td>
