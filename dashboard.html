@@ -657,8 +657,9 @@ fetch('/api/auth/verify')
             <th class="num">Impressioni</th>
             <th class="num">Reach</th>
             <th class="num">Click</th>
-            <th class="num">Reazioni</th>
-            <th class="num">ER</th>
+            <th class="num">CTR %</th>
+            <th class="num">Engagement</th>
+            <th class="num">ER %</th>
             <th class="num">Spesa</th>
             <th class="num">Lead</th>
           </tr></thead>
@@ -1563,16 +1564,18 @@ function renderCreatives(){
   for(const [postText, creatives] of Object.entries(byPost)){
     const agg = creatives.reduce((a,r)=>({
       imp: a.imp+r.impressions, reach: a.reach+r.reach, clicks: a.clicks+r.clicks,
-      reactions: a.reactions+r.reactions, spent: a.spent+r.spent, leads: a.leads+r.leads,
-    }), {imp:0,reach:0,clicks:0,reactions:0,spent:0,leads:0});
+      reactions: a.reactions+r.reactions, comments: a.comments+r.comments, shares: a.shares+r.shares,
+      spent: a.spent+r.spent, leads: a.leads+r.leads,
+    }), {imp:0,reach:0,clicks:0,reactions:0,comments:0,shares:0,spent:0,leads:0});
     postData.push({postText, creatives, agg});
   }
 
   // Calcola totale globale
   const totals = postData.reduce((a,p)=>({
     imp: a.imp+p.agg.imp, reach: a.reach+p.agg.reach, clicks: a.clicks+p.agg.clicks,
-    reactions: a.reactions+p.agg.reactions, spent: a.spent+p.agg.spent, leads: a.leads+p.agg.leads,
-  }), {imp:0,reach:0,clicks:0,reactions:0,spent:0,leads:0});
+    reactions: a.reactions+p.agg.reactions, comments: a.comments+p.agg.comments, shares: a.shares+p.agg.shares,
+    spent: a.spent+p.agg.spent, leads: a.leads+p.agg.leads,
+  }), {imp:0,reach:0,clicks:0,reactions:0,comments:0,shares:0,spent:0,leads:0});
 
   let html = '';
   let rowId = 0;
@@ -1581,16 +1584,19 @@ function renderCreatives(){
   for(const {postText, creatives, agg} of postData){
     const id = 'creative_group_' + (rowId++);
     const displayText = (postText||'—').substring(0,180);
-    const er = agg.imp>0 ? nfDec.format((agg.reactions)/agg.imp*100) : '—';
+    const engagement = agg.reactions+agg.comments+agg.shares;
+    const er = agg.imp>0 ? nfDec.format(engagement/agg.imp*100) : '—';
+    const ctr = agg.imp>0 ? nfDec.format(agg.clicks/agg.imp*100) : '—';
 
     // Riga principale (post)
-    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="document.getElementById('${id}').style.display=document.getElementById('${id}').style.display==='none'?'table-row':'none';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
+    html += `<tr style="background:var(--surface-lt);font-weight:600;cursor:pointer" onclick="const el=document.getElementById('${id}');el.style.display=el.style.display==='none'?'table-row':'none';this.style.fontWeight=this.style.fontWeight==='600'?'700':'600'">
       <td style="font-size:12px">📌 Post</td>
       <td style="font-size:12px;max-width:300px;line-height:1.4">${escapeHtml(displayText)}${displayText.length>=180?'…':''}</td>
       <td class="num">${fmt(agg.imp)}</td>
       <td class="num">${fmt(agg.reach)}</td>
       <td class="num">${fmt(agg.clicks)}</td>
-      <td class="num">${fmt(agg.reactions)}</td>
+      <td class="num">${ctr}%</td>
+      <td class="num">${fmt(engagement)}</td>
       <td class="num">${er}%</td>
       <td class="num">£${nfDec.format(agg.spent)}</td>
       <td class="num">${fmt(agg.leads)}</td>
@@ -1598,14 +1604,17 @@ function renderCreatives(){
 
     // Sottorighe (creatività)
     for(const r of creatives){
-      const er_c = r.impressions>0 ? nfDec.format((r.reactions+r.comments+r.shares)/r.impressions*100) : '—';
+      const eng_c = r.reactions+r.comments+r.shares;
+      const er_c = r.impressions>0 ? nfDec.format(eng_c/r.impressions*100) : '—';
+      const ctr_c = r.impressions>0 ? nfDec.format(r.clicks/r.impressions*100) : '—';
       html += `<tr id="${id}" style="background:var(--surface);font-size:11px;color:var(--text-2)">
         <td style="padding-left:32px">${escapeHtml(campLabel(r.camp_id))}</td>
         <td style="max-width:300px">${escapeHtml((r.ad_name||'—').substring(0,80))}</td>
         <td class="num">${fmt(r.impressions)}</td>
         <td class="num">${fmt(r.reach)}</td>
         <td class="num">${fmt(r.clicks)}</td>
-        <td class="num">${fmt(r.reactions)}</td>
+        <td class="num">${ctr_c}%</td>
+        <td class="num">${fmt(eng_c)}</td>
         <td class="num">${er_c}%</td>
         <td class="num">£${nfDec.format(r.spent)}</td>
         <td class="num">${fmt(r.leads)}</td>
@@ -1614,13 +1623,17 @@ function renderCreatives(){
   }
 
   // Riga totale
+  const totalEng = totals.reactions+totals.comments+totals.shares;
+  const totalER = totals.imp>0 ? nfDec.format(totalEng/totals.imp*100) : '—';
+  const totalCTR = totals.imp>0 ? nfDec.format(totals.clicks/totals.imp*100) : '—';
   html += `<tr style="font-weight:700;background:var(--surface-mid);border-top:2px solid var(--border)">
     <td colspan="2" style="font-size:12px">Totale Krein</td>
     <td class="num">${fmt(totals.imp)}</td>
     <td class="num">${fmt(totals.reach)}</td>
     <td class="num">${fmt(totals.clicks)}</td>
-    <td class="num">${fmt(totals.reactions)}</td>
-    <td class="num">—</td>
+    <td class="num">${totalCTR}%</td>
+    <td class="num">${fmt(totalEng)}</td>
+    <td class="num">${totalER}%</td>
     <td class="num">£${nfDec.format(totals.spent)}</td>
     <td class="num">${fmt(totals.leads)}</td>
   </tr>`;
