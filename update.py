@@ -60,6 +60,7 @@ INBOX_RS         = os.path.join(BASE, 'inbox', 'rs-italia')
 INBOX            = INBOX_RS   # alias legacy
 DASHBOARD        = os.path.join(BASE, 'dashboard.html')
 HISTORY_JSON     = os.path.join(BASE, 'rs_history.json')
+CAMP_HISTORY_JSON= os.path.join(BASE, 'camp_history.json')
 CAMP_FILTER_KEYWORDS = ['krein']
 
 # ── OPTIMEDIA ────────────────────────────────────────────────────────────────
@@ -367,6 +368,42 @@ def update_history(pairs):
         json.dump(history, f, ensure_ascii=False, separators=(',', ':'))
 
     print(f'  Storico: {history["meta"]["data_min"]} → {history["meta"]["data_max"]} · {history["meta"]["giorni"]} giorni')
+    return history
+
+
+def update_camp_history(camp_data):
+    """Accumula storico campagne Krein in camp_history.json (incrementale)."""
+    existing = {}
+    if os.path.exists(CAMP_HISTORY_JSON):
+        try:
+            with open(CAMP_HISTORY_JSON, 'r', encoding='utf-8') as f:
+                old = json.load(f)
+            # Chiave univoca: camp_id + date + ad_name per evitare duplicati
+            for r in old.get('daily', []):
+                key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
+                existing[key] = r
+        except Exception:
+            pass
+
+    for r in camp_data.get('daily', []):
+        key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
+        existing[key] = r
+
+    sorted_rows = sorted(existing.values(), key=lambda x: x['date'])
+    all_dates   = [r['date'] for r in sorted_rows]
+
+    history = {
+        'meta': {
+            'aggiornato': datetime.now().strftime('%Y-%m-%d'),
+            'data_min':   min(all_dates) if all_dates else '',
+            'data_max':   max(all_dates) if all_dates else '',
+            'righe':      len(sorted_rows),
+        },
+        'daily': sorted_rows,
+    }
+    with open(CAMP_HISTORY_JSON, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, separators=(',', ':'))
+    print(f'  Storico camp: {history["meta"]["data_min"]} → {history["meta"]["data_max"]} · {history["meta"]["righe"]} righe')
     return history
 
 
@@ -953,6 +990,76 @@ def parse_campaign_csv(path):
         raise ValueError('Header "Campaign Name" non trovato nel CSV campagne')
 
     headers = [h.strip().strip('"') for h in lines[header_idx].split(sep)]
+
+    # ── Rilevamento formato: flat (91c/riga) vs multi-linea (23c prima riga + continuazione)
+    # Nel formato multi-linea il testo creativo spanna più righe e le metriche
+    # sono nell'ultima riga di ogni gruppo (offset +22 rispetto all'header).
+    first_data_lines = [l for l in lines[header_idx+1:header_idx+5] if l.strip()]
+    is_multiline = first_data_lines and len(first_data_lines[0].split(sep)) < 40
+
+    if is_multiline:
+        # Formato multi-linea: raggruppa per creative, estrai metriche dall'ultima riga
+        creatives_raw = []
+        current = None
+        for l in lines[header_idx+1:]:
+            cells = l.split(sep)
+            cid = cells[3].strip().strip('"') if len(cells) > 3 else ''
+            if len(cells) >= 20 and cid.isdigit():
+                if current: creatives_raw.append(current)
+                current = {'first': cells, 'last': None}
+            elif current and len(cells) >= 50:
+                current['last'] = cells
+        if current: creatives_raw.append(current)
+
+        def fvl(cells, i):
+            try: return float(cells[i].strip().strip('"').replace(',','')) if i < len(cells) else 0.0
+            except: return 0.0
+
+        camps = defaultdict(lambda: {'id':'','name':'','objective':'','status':'','budget':0.0,'start':'','end':'','currency':'GBP'})
+        daily_rows = []
+        for c in creatives_raw:
+            f, l = c['first'], c['last']
+            if not l: continue
+            cid  = f[3].strip().strip('"')
+            name = f[4].strip().strip('"')
+            c_obj= camps[name]
+            c_obj['id']     = cid
+            c_obj['name']   = name
+            c_obj['status'] = f[5].strip().strip('"') if len(f)>5 else ''
+            c_obj['currency'] = f[2].strip().strip('"') if len(f)>2 else 'GBP'
+            try: c_obj['budget'] = float(f[8].strip().strip('"').replace(',','')) if len(f)>8 and f[8].strip() else c_obj['budget']
+            except: pass
+            # Metriche dalla riga finale (offset -22): spent=l[6], imp=l[7], clicks=l[8]...
+            date_iso = _mdy(f[0]) or report_end or datetime.now().strftime('%Y-%m-%d')
+            daily_rows.append({
+                'date': date_iso, 'camp_id': cid, 'camp_name': name,
+                'spent':       fvl(l, 6),
+                'impressions': int(fvl(l, 7)),
+                'clicks':      int(fvl(l, 8)),
+                'reactions':   int(fvl(l, 12)),
+                'comments':    int(fvl(l, 13)),
+                'shares':      int(fvl(l, 14)),
+                'follows':     int(fvl(l, 15)),
+                'conversions': int(fvl(l, 27)),
+                'leads':       int(fvl(l, 37)),
+                'reach':       int(fvl(l, 42)),
+                'video_views': 0,
+            })
+
+        camp_meta = {}
+        for c in camps.values():
+            camp_meta[c['id']] = {'id':c['id'],'name':c['name'],'objective':c.get('objective',''),
+                                  'status':c['status'],'budget':round(c['budget'],2),
+                                  'start':c.get('start',''),'end':c.get('end',''),'currency':c['currency']}
+        return {
+            'meta': {'report_start': report_start, 'report_end': report_end,
+                     'generated': generated,
+                     'currency': next(iter(camp_meta.values()))['currency'] if camp_meta else 'GBP'},
+            'camp_meta': list(camp_meta.values()),
+            'daily': daily_rows,
+        }
+
+    # ── Formato flat: logica originale ──────────────────────────────────────
     data_lines = [l for l in lines[header_idx + 1:] if l.strip()]
 
     # Nomi colonna alternativi usati da versioni diverse di Campaign Manager
@@ -1330,6 +1437,7 @@ def main():
                         camp_data['daily']     = [r for r in camp_data['daily'] if r.get('camp_id') in ids_ok]
                     update_camp_data(camp_data)
                     print(f'  CAMP_DATA ✓  ({len(camp_data["camp_meta"])} campagne Krein · {camp_data["meta"]["report_start"]} → {camp_data["meta"]["report_end"]})')
+                    update_camp_history(camp_data)
                 except Exception as e:
                     print(f'  CAMP_DATA WARN: {e}')
             else:
@@ -1412,7 +1520,7 @@ def main():
     commit_msg = f'Update dati: {data_max}'
     print(f'\nDeploy automatico...')
     try:
-        files_to_add = ['dashboard.html', 'rs_history.json', 'optimedia.html']
+        files_to_add = ['dashboard.html', 'rs_history.json', 'camp_history.json', 'optimedia.html']
         subprocess.run(['git', 'add'] + files_to_add, cwd=BASE, check=True)
         result = subprocess.run(['git', 'diff', '--cached', '--quiet'], cwd=BASE)
         if result.returncode != 0:
