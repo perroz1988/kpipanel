@@ -1651,10 +1651,30 @@ function renderPostDetail(){
     return;
   }
   const matches = RS_DATA.posts.filter(p=>p.link===state.selectedPostLink);
-  // prefer Totale, else Organico
-  const post = matches.find(p=>p.tipo==='Totale') || matches.find(p=>p.tipo==='Organico') || matches[0];
   const sponMatch = matches.find(p=>p.tipo==='Sponsorizzato');
   const orgMatch = matches.find(p=>p.tipo==='Organico');
+  let post = matches.find(p=>p.tipo==='Totale');
+
+  // Se non esiste Totale, aggregare Organico + Sponsorizzato
+  if(!post && (orgMatch || sponMatch)){
+    const org = orgMatch||{impressioni:0,clic:0,reazioni:0,commenti:0,diffusioni:0,nuovi_follower:0,ctr:0};
+    const spon = sponMatch||{impressioni:0,clic:0,reazioni:0,commenti:0,diffusioni:0,nuovi_follower:0,ctr:0};
+    const totImp = org.impressioni + spon.impressioni;
+    const totClick = (org.clic||0) + (spon.clic||0);
+    post = {
+      ...org,
+      tipo: 'Totale',
+      impressioni: totImp,
+      clic: totClick,
+      reazioni: (org.reazioni||0) + (spon.reazioni||0),
+      commenti: (org.commenti||0) + (spon.commenti||0),
+      diffusioni: (org.diffusioni||0) + (spon.diffusioni||0),
+      nuovi_follower: (org.nuovi_follower||0) + (spon.nuovi_follower||0),
+      ctr: totImp>0 ? totClick/totImp : 0
+    };
+  } else {
+    post = post || matches[0];
+  }
 
   c.innerHTML = `
     <div style="display:flex;gap:16px;align-items:center;margin-bottom:16px">
