@@ -1346,7 +1346,19 @@ function renderAudience(){
 function renderContenuti(r){
   let poolAll;
   if(state.contentFilter==='org') poolAll = postsOrgAll();
-  else if(state.contentFilter==='spon') poolAll = postsSponAll();
+  else if(state.contentFilter==='spon') {
+    poolAll = postsSponAll();
+    // Aggiungi post organici che hanno amplificazioni (creative che li sponsorizzano)
+    const normalize = t => (t||'').replace(/\s+/g,' ').toLowerCase().trim();
+    const postsWithAmplif = postsOrgAll().filter(p => {
+      const pNorm = normalize(p.titolo);
+      return (CREATIVE_DATA||[]).some(c => {
+        const cNorm = normalize(c.post_text || '');
+        return cNorm.includes(pNorm.substring(0,30)) || pNorm.includes(cNorm.substring(0,30));
+      });
+    });
+    poolAll = [...new Map([...poolAll, ...postsWithAmplif].map(p=>[p.link, p])).values()];
+  }
   else poolAll = postsTotaleAll();
 
   const pool = poolAll.filter(p=>p.data_creazione && inRange(p.data_creazione, r));
