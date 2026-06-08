@@ -515,7 +515,6 @@ fetch('/api/auth/verify')
     <div class="tab active" data-tab="generale">Report Generale</div>
     <div class="tab" data-tab="audience">Audience / Fan Base</div>
     <div class="tab" data-tab="contenuti">Contenuti Organici</div>
-    <div class="tab" data-tab="amplificazione">Come legge l'amplificazione Krein</div>
     <div class="tab" data-tab="post">Singolo Post</div>
     <div class="tab" data-tab="campagne">Campagne Adv</div>
     <div class="tab" data-tab="keye">Brand Listening</div>
@@ -679,12 +678,6 @@ fetch('/api/auth/verify')
     <div id="postDetail">
       <div class="empty-state">Seleziona un post dalla tab "Contenuti Organici" per vedere il dettaglio.</div>
     </div>
-  </div>
-
-  <!-- TAB: AMPLIFICAZIONE KREIN -->
-  <div class="tab-content" id="tab-amplificazione" data-print-title="Come legge l'amplificazione Krein">
-    <div class="print-section-header"></div>
-    <div id="amplificazioneDetail" style="padding:24px;"></div>
   </div>
 
   <!-- TOAST -->
@@ -1077,7 +1070,6 @@ function render(){
   if(state.tab==='generale') renderGenerale(r);
   if(state.tab==='audience') renderAudience();
   if(state.tab==='contenuti') renderContenuti(r);
-  if(state.tab==='amplificazione') renderAmplificazione();
   if(state.tab==='post') renderPostDetail();
   if(state.tab==='campagne') renderCampagne();
   if(state.tab==='keye') renderKeye();
@@ -1415,116 +1407,6 @@ function renderContenuti(r){
   state._postsPool = pool;
   renderPosts();
   renderCreatives();
-}
-
-/* ---------- AMPLIFICAZIONE KREIN ---------- */
-function renderAmplificazione(){
-  // Applica filtro periodo come negli altri tab
-  const range = getRange();
-  const inRange = d => d>=range.from && d<=range.to;
-
-  // Filtra post organici per periodo
-  const postsOrganici = RS_DATA.posts.filter(p => p.tipo === 'Organico' && inRange(new Date(p.data_creazione)));
-
-  const CAMPS = {
-    '1056604124': { id: '1056604124', name: 'Amplification Always On', color: '#4A00FF' },
-    '987808183':  { id: '987808183', name: 'MRO Survey', color: '#FF6B35' }
-  };
-
-  // Estrai post per campagna da CREATIVE_DATA (solo quelli nel periodo)
-  const postTextsInPeriod = new Set(postsOrganici.map(p => p.titolo));
-  const postsBycamp = {};
-  for(const campId of Object.keys(CAMPS)) {
-    const creatives = (CREATIVE_DATA||[]).filter(c => c.camp_id === campId && postTextsInPeriod.has(c.post_text));
-    postsBycamp[campId] = [...new Set(creatives.map(c => c.post_text))].sort();
-  }
-
-  // Conta totali filtrati
-  const totals = {};
-  for(const campId of Object.keys(CAMPS)) {
-    const creatives = (CREATIVE_DATA||[]).filter(c => c.camp_id === campId && postTextsInPeriod.has(c.post_text));
-    totals[campId] = {
-      imp: creatives.reduce((s,c)=>s+(c.impressions||0),0),
-      clk: creatives.reduce((s,c)=>s+(c.clicks||0),0),
-      posts: postsBycamp[campId].length
-    };
-  }
-
-  if(!Object.values(postsBycamp).some(p=>p.length)) {
-    document.getElementById('amplificazioneDetail').innerHTML = '<div class="empty-state">Nessun post amplificato trovato.</div>';
-    return;
-  }
-
-  // Rende colonne per campagna
-  const normalizeText = t => (t||'').replace(/\s+/g,' ').trim().substring(0,60);
-  const renderCamp = (campId) => {
-    const camp = CAMPS[campId];
-    const posts = postsBycamp[campId];
-    const total = totals[campId];
-
-    const rows = posts.map(postText => {
-      const creativeMatches = (CREATIVE_DATA||[]).filter(c => c.post_text === postText && c.camp_id === campId);
-      const spn_imp = creativeMatches.reduce((s,c)=>s+(c.impressions||0),0);
-      const spn_clk = creativeMatches.reduce((s,c)=>s+(c.clicks||0),0);
-      const spn_ctr = spn_imp > 0 ? (spn_clk / spn_imp) : 0;
-
-      const orgMatch = postsOrganici.find(p => normalizeText(p.titolo).includes(normalizeText(postText).substring(0,30)));
-      const org_imp = orgMatch ? orgMatch.impressioni : 0;
-      const org_clk = orgMatch ? orgMatch.clic : 0;
-      const org_er = org_imp > 0 ? ((orgMatch.reazioni||0) + (orgMatch.commenti||0) + (orgMatch.diffusioni||0)) / org_imp : 0;
-
-      const tot_imp = org_imp + spn_imp;
-      const tot_clk = org_clk + spn_clk;
-      const tot_er = tot_imp > 0 ? (((orgMatch?.reazioni||0) + (orgMatch?.commenti||0) + (orgMatch?.diffusioni||0)) / tot_imp) : 0;
-
-      return `
-        <div style="margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--border-lt)">
-          <div style="font-weight:500;color:var(--text);margin-bottom:8px;font-size:13px">${postText.substring(0,80)}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-            <div style="padding:10px;background:var(--surface-mid);border-radius:6px;border:1px solid var(--border)">
-              <div style="font-size:10px;color:var(--text-2);font-weight:600;margin-bottom:4px">ORG</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text)">${org_imp.toLocaleString()}</div>
-              <div style="font-size:11px;color:var(--text-2)">ER ${(org_er*100).toFixed(1)}%</div>
-            </div>
-            <div style="padding:10px;background:var(--surface-mid);border-radius:6px;border:1px solid var(--border)">
-              <div style="font-size:10px;color:var(--text-2);font-weight:600;margin-bottom:4px">PAID</div>
-              <div style="font-size:14px;font-weight:700;color:var(--text)">${spn_imp.toLocaleString()}</div>
-              <div style="font-size:11px;color:var(--text-2)">CTR ${(spn_ctr*100).toFixed(1)}%</div>
-            </div>
-            <div style="padding:10px;background:oklch(15% 0.08 250);border-radius:6px;border:1px solid var(--border);color:white">
-              <div style="font-size:10px;color:rgba(255,255,255,0.7);font-weight:600;margin-bottom:4px">TOT</div>
-              <div style="font-size:14px;font-weight:700">${tot_imp.toLocaleString()}</div>
-              <div style="font-size:11px;color:rgba(255,255,255,0.8)">ER ${(tot_er*100).toFixed(1)}%</div>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    return `
-      <div style="margin-bottom:32px;padding:20px;background:oklch(98% 0.004 ${camp.color});border-radius:12px;border-left:4px solid ${camp.color}">
-        <h3 style="margin:0 0 12px 0;color:var(--text);font-size:16px">${camp.name}</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;font-size:13px">
-          <div><span style="color:var(--text-2)">Post:</span> <strong>${total.posts}</strong></div>
-          <div><span style="color:var(--text-2)">Imp:</span> <strong>${total.imp.toLocaleString()}</strong></div>
-          <div><span style="color:var(--text-2)">Click:</span> <strong>${total.clk.toLocaleString()}</strong></div>
-        </div>
-        <div style="background:white;border-radius:8px;padding:12px">${rows}</div>
-      </div>
-    `;
-  };
-
-  const periodLabel = `${fmtDate(range.from)} → ${fmtDate(range.to)}`;
-  const html = `
-    <div style="margin-bottom:24px">
-      <h2 style="margin:0 0 8px 0">Come legge l'amplificazione Krein</h2>
-      <p style="color:var(--text-2);margin:0;font-size:13px">Periodo: <strong>${periodLabel}</strong></p>
-      <p style="color:var(--text-2);margin:4px 0 0 0;font-size:12px">Post amplificati per campagna: organico (pubblico non pagato) + paid (Always On). Dati da Creative Report.</p>
-    </div>
-    ${Object.keys(CAMPS).map(campId => renderCamp(campId)).join('')}
-  `;
-
-  document.getElementById('amplificazioneDetail').innerHTML = html;
 }
 
 function renderPosts(){
