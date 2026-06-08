@@ -1664,13 +1664,19 @@ function renderPostDetail(){
   });
 }
 function renderAmplificazioniPost(post){
-  // Trova creatività che amplificano questo post
-  const normalizeText = t => (t||'').replace(/\s+/g,' ').trim().substring(0,60);
-  const postTitle = normalizeText(post.titolo);
+  // Trova creatività che amplificano questo post (matching per substring)
+  const normalize = t => (t||'').replace(/\s+/g,' ').toLowerCase().trim();
+  const postNorm = normalize(post.titolo);
 
-  const amplifications = (CREATIVE_DATA||[]).filter(c =>
-    c.post_text && normalizeText(c.post_text).substring(0,40) === postTitle.substring(0,40)
-  );
+  const amplifications = (CREATIVE_DATA||[]).filter(c => {
+    if(!c.post_text) return false;
+    const cNorm = normalize(c.post_text);
+    // Match se il post_text contiene almeno 30 caratteri significativi del titolo
+    // oppure se il titolo contiene almeno 30 caratteri del post_text
+    const substr1 = postNorm.substring(0,30);
+    const substr2 = cNorm.substring(0,30);
+    return cNorm.includes(substr1) || postNorm.includes(substr2);
+  });
 
   if(!amplifications.length) return '';
 
