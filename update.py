@@ -371,27 +371,46 @@ def update_history(pairs):
     return history
 
 
-def update_camp_history(camp_data):
-    """Accumula storico campagne Krein in camp_history.json (incrementale)."""
+def _apply_krein_filter(camp_data):
+    """Filtra camp_data ai soli Krein secondo CAMP_FILTER_KEYWORDS."""
+    if not CAMP_FILTER_KEYWORDS:
+        return camp_data
+    def _match(name):
+        n = name.lower()
+        return any(kw.lower() in n for kw in CAMP_FILTER_KEYWORDS)
+    ids_ok = {c['id'] for c in camp_data['camp_meta'] if _match(c['name'])}
+    camp_data['camp_meta'] = [c for c in camp_data['camp_meta'] if c['id'] in ids_ok]
+    camp_data['daily']     = [r for r in camp_data['daily'] if r.get('camp_id') in ids_ok]
+    return camp_data
+
+
+def rebuild_camp_history():
+    """Ricostruisce camp_history.json da TUTTI i CSV in archive/campagne/.
+    Incrementale: non sovrascrive righe già presenti."""
     existing = {}
+    # Carica storico esistente
     if os.path.exists(CAMP_HISTORY_JSON):
         try:
             with open(CAMP_HISTORY_JSON, 'r', encoding='utf-8') as f:
-                old = json.load(f)
-            # Chiave univoca: camp_id + date + ad_name per evitare duplicati
-            for r in old.get('daily', []):
-                key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
-                existing[key] = r
+                for r in json.load(f).get('daily', []):
+                    key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
+                    existing[key] = r
         except Exception:
             pass
 
-    for r in camp_data.get('daily', []):
-        key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
-        existing[key] = r
+    # Processa tutti i CSV campagne in archivio
+    all_csvs = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_campagne.csv')))
+    for csv_path in all_csvs:
+        try:
+            camp_data = _apply_krein_filter(parse_campaign_csv(csv_path))
+            for r in camp_data['daily']:
+                key = f"{r['camp_id']}|{r['date']}|{r.get('camp_name','')[:30]}"
+                existing[key] = r
+        except Exception as e:
+            print(f'    WARN storico {os.path.basename(csv_path)}: {e}')
 
     sorted_rows = sorted(existing.values(), key=lambda x: x['date'])
     all_dates   = [r['date'] for r in sorted_rows]
-
     history = {
         'meta': {
             'aggiornato': datetime.now().strftime('%Y-%m-%d'),
@@ -1427,17 +1446,37 @@ def main():
                 camp_files = sorted(glob.glob(os.path.join(ARCHIVE_ROOT, '*campaign_performance_report*.csv')))
             if camp_files:
                 try:
-                    camp_data = parse_campaign_csv(camp_files[-1])
-                    if CAMP_FILTER_KEYWORDS:
-                        def _match(name):
-                            n = name.lower()
-                            return any(kw.lower() in n for kw in CAMP_FILTER_KEYWORDS)
-                        ids_ok = {c['id'] for c in camp_data['camp_meta'] if _match(c['name'])}
-                        camp_data['camp_meta'] = [c for c in camp_data['camp_meta'] if c['id'] in ids_ok]
-                        camp_data['daily']     = [r for r in camp_data['daily'] if r.get('camp_id') in ids_ok]
+                    # Ricostruisci storico da TUTTI i CSV
+                    camp_history = rebuild_camp_history()
+
+                    # Prepara CAMP_DATA dal totale storico (non solo l'ultimo CSV)
+                    camp_meta_by_id = {}
+                    for r in camp_history['daily']:
+                        cid = r.get('camp_id')
+                        if cid not in camp_meta_by_id:
+                            camp_meta_by_id[cid] = {
+                                'id': cid,
+                                'name': r.get('camp_name', ''),
+                                'objective': '',
+                                'status': '',
+                                'budget': 0,
+                                'start': '',
+                                'end': '',
+                                'currency': 'GBP'
+                            }
+
+                    camp_data = {
+                        'meta': {
+                            'report_start': camp_history['meta']['data_min'],
+                            'report_end': camp_history['meta']['data_max'],
+                            'generated': datetime.now().strftime('%Y-%m-%d'),
+                            'currency': 'GBP'
+                        },
+                        'camp_meta': list(camp_meta_by_id.values()),
+                        'daily': camp_history['daily']
+                    }
                     update_camp_data(camp_data)
-                    print(f'  CAMP_DATA ✓  ({len(camp_data["camp_meta"])} campagne Krein · {camp_data["meta"]["report_start"]} → {camp_data["meta"]["report_end"]})')
-                    update_camp_history(camp_data)
+                    print(f'  CAMP_DATA ✓  ({len(camp_data["camp_meta"])} campagne Krein · {camp_history["meta"]["data_min"]} → {camp_history["meta"]["data_max"]})')
                 except Exception as e:
                     print(f'  CAMP_DATA WARN: {e}')
             else:
