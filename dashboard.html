@@ -1598,10 +1598,10 @@ function renderCreatives(){
 
   body.innerHTML = CREATIVE_DATA.map(r=>{
     const er = r.impressions>0 ? nfDec.format((r.reactions+r.comments+r.shares)/r.impressions*100) : '—';
-    const url = r.click_url ? `<a href="${escapeHtml(r.click_url)}" target="_blank" style="color:var(--li-blue);font-size:11px;text-decoration:none">↗</a>` : '';
+    const creativeText = (r.post_text||r.ad_name||'—').substring(0,180);
     return `<tr>
       <td style="font-size:12px">${escapeHtml(campLabel(r.camp_id))}</td>
-      <td style="font-size:12px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(r.ad_name||'—')} ${url}</td>
+      <td style="font-size:12px;max-width:300px;line-height:1.4">${escapeHtml(creativeText)}${creativeText.length>=180?'…':''}</td>
       <td class="num">${fmt(r.impressions)}</td>
       <td class="num">${fmt(r.reach)}</td>
       <td class="num">${fmt(r.clicks)}</td>
