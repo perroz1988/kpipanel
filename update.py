@@ -1237,18 +1237,14 @@ def update_creative_data(creatives):
     """Sostituisce il blocco CREATIVE_DATA nel dashboard.html."""
     with open(DASHBOARD, 'r', encoding='utf-8') as f:
         html = f.read()
-    marker = '\n\nconst CREATIVE_DATA = '
+    marker = 'const CREATIVE_DATA = '
     end    = ';\n\nconst CAMP_DATA'
     idx = html.find(marker)
     if idx < 0:
-        # Prima volta: inserisce prima di CAMP_DATA
-        camp_idx = html.find('\n\nconst CAMP_DATA')
-        if camp_idx < 0: return False
-        html = html[:camp_idx] + marker + json.dumps(creatives, ensure_ascii=False) + ';' + html[camp_idx:]
-    else:
-        end_idx = html.find(end, idx)
-        if end_idx < 0: return False
-        html = html[:idx] + marker + json.dumps(creatives, ensure_ascii=False) + html[end_idx:]
+        return False
+    end_idx = html.find(end, idx)
+    if end_idx < 0: return False
+    html = html[:idx] + marker + json.dumps(creatives, ensure_ascii=False) + html[end_idx:]
     with open(DASHBOARD, 'w', encoding='utf-8') as f:
         f.write(html)
     return True
@@ -1278,6 +1274,11 @@ def update_camp_data(camp_data):
         if idx == -1:
             print('  ERRORE: KEYE_DATA non trovato nel dashboard.')
             return False
+        # Assicura che CREATIVE_DATA sia inserito prima di CAMP_DATA
+        creative_marker = '\n\nconst CREATIVE_DATA = '
+        if creative_marker not in html[:idx]:
+            html = html[:idx] + creative_marker + '[];\n' + html[idx:]
+            idx = html.find(keye_marker)
         new_html = html[:idx] + start_marker + new_json + ';' + html[idx:]
 
     with open(DASHBOARD, 'w', encoding='utf-8') as f:
