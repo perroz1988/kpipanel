@@ -395,10 +395,28 @@ fetch('/api/auth/verify')
       </table>
     </div>
 
+    <!-- Follower growth -->
+    <div class="card" style="margin-bottom:20px">
+      <h3>Crescita Follower <span class="hint">nuovi follower giornalieri · Feb–Giu 2026</span></h3>
+      <div style="display:flex;gap:32px;margin-bottom:12px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Nuovi nel periodo</div>
+          <div id="liTotFollowers" style="font-size:32px;font-weight:800;color:var(--li);letter-spacing:-.8px">—</div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--text-3);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">Media al giorno</div>
+          <div id="liAvgFollowers" style="font-size:32px;font-weight:800;color:var(--text);letter-spacing:-.8px">—</div>
+        </div>
+      </div>
+      <div id="liFollowerWrap" style="position:relative;height:180px">
+        <canvas id="liFollowerChart" style="height:180px;width:100%"></canvas>
+      </div>
+    </div>
+
     <!-- Demographics 2x2 grid -->
     <div class="row-2">
       <div class="card">
-        <h3>Top Paesi <span class="hint">per follower acquisiti</span></h3>
+        <h3>Top Paesi <span class="hint">per follower totali</span></h3>
         <div id="liCountries"></div>
       </div>
       <div class="card">
@@ -1111,60 +1129,99 @@ function renderLinkedinTopPosts(){
   }).join('');
 }
 
+function drawLinkedInFollowerChart(){
+  const daily = (OPTIMEDIA_DATA.linkedin && OPTIMEDIA_DATA.linkedin.follower_daily) || [];
+  const canvas = document.getElementById('liFollowerChart');
+  if(!canvas || !daily.length) return;
+  const W = canvas.offsetWidth || canvas.parentElement.offsetWidth || 700;
+  const H = 180;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = H * devicePixelRatio;
+  canvas.style.width  = W+'px';
+  canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+
+  const total = daily.reduce((s,d)=>s+d.total, 0);
+  const avg   = total / daily.length;
+  document.getElementById('liTotFollowers').textContent = '+'+total;
+  document.getElementById('liAvgFollowers').textContent = nfDec.format(avg.toFixed(2));
+
+  const PAD = {top:12, right:16, bottom:24, left:12};
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+  const n   = daily.length;
+  const maxV = Math.max(...daily.map(d=>d.total), 1);
+  const barW = Math.max(1, cW / n - 1);
+
+  ctx.fillStyle = '#E7F0FA';
+  ctx.fillRect(PAD.left, PAD.top, cW, cH);
+
+  daily.forEach((d, i) => {
+    const x = PAD.left + i * (cW / n);
+    const bH = (d.total / maxV) * cH;
+    ctx.fillStyle = d.total > 0 ? 'var(--li)' : '#dde8f8';
+    ctx.fillRect(x, PAD.top + cH - bH, barW, bH);
+  });
+
+  // date labels every ~month
+  ctx.fillStyle='#888'; ctx.font='10px system-ui'; ctx.textAlign='center';
+  const step = Math.max(1, Math.floor(n / 6));
+  for(let i=0; i<n; i+=step){
+    const [,mo,d]=daily[i].data.split('-');
+    const x = PAD.left + i*(cW/n) + barW/2;
+    ctx.fillText(d+'/'+mo, x, H-5);
+  }
+}
+
 function renderLinkedinDemographics(){
   const li = OPTIMEDIA_DATA.linkedin.followers;
 
+  function barRow(name, count, max, color){
+    return '<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span style="font-weight:600">'+
+      name+'</span><span style="color:var(--text-3)">'+count+'</span></div>'+
+      '<div style="height:5px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+      Math.round(count/max*100)+'%;height:100%;background:'+color+'"></div></div></div>';
+  }
+
   // Countries
   const mx = Math.max(...li.locations.map(l=>l.count), 1);
-  document.getElementById('liCountries').innerHTML = li.locations.slice(0,7).map(l=>
-    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
-    l.paese.split(',')[0]+'</span><span style="color:var(--text-3)">'+l.count+'</span></div>'+
-    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
-    ((l.count/mx)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  document.getElementById('liCountries').innerHTML = li.locations.slice(0,10).map(l=>
+    barRow(l.name.split(',')[0], l.count, mx, 'var(--li)')
   ).join('');
 
   // Industries
   const mxI = Math.max(...li.industries.map(i=>i.count), 1);
-  document.getElementById('liIndustries').innerHTML = li.industries.slice(0,7).map(i=>
-    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
-    i.name+'</span><span style="color:var(--text-3)">'+i.count+'</span></div>'+
-    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
-    ((i.count/mxI)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  document.getElementById('liIndustries').innerHTML = li.industries.slice(0,10).map(i=>
+    barRow(i.name, i.count, mxI, 'var(--li)')
   ).join('');
 
   // Job Function
   const mxJ = Math.max(...li.job_function.map(j=>j.count), 1);
-  document.getElementById('liJobFunction').innerHTML = li.job_function.slice(0,7).map(j=>
-    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
-    j.name+'</span><span style="color:var(--text-3)">'+j.count+'</span></div>'+
-    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
-    ((j.count/mxJ)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  document.getElementById('liJobFunction').innerHTML = li.job_function.slice(0,10).map(j=>
+    barRow(j.name, j.count, mxJ, '#2A85C8')
   ).join('');
 
   // Seniority
   const mxS = Math.max(...li.seniority.map(s=>s.count), 1);
-  document.getElementById('liSeniority').innerHTML = li.seniority.slice(0,7).map(s=>
-    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
-    s.name+'</span><span style="color:var(--text-3)">'+s.count+'</span></div>'+
-    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
-    ((s.count/mxS)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  document.getElementById('liSeniority').innerHTML = li.seniority.map(s=>
+    barRow(s.name, s.count, mxS, '#2A85C8')
   ).join('');
 
   // Company size
   const mxC = Math.max(...li.company_size.map(c=>c.count), 1);
-  document.getElementById('liCompanySize').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">'+
-  li.company_size.map(c=>
-    '<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
-    c.name+'</span><span style="color:var(--text-3)">'+c.count+'</span></div>'+
-    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
-    ((c.count/mxC)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
-  ).join('')+'</div>';
+  document.getElementById('liCompanySize').innerHTML =
+    '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">'+
+    li.company_size.map(c=>
+      '<div>'+barRow(c.name, c.count, mxC, 'var(--li)')+'</div>'
+    ).join('')+'</div>';
 }
 
 function renderLinkedin(){
   renderLinkedinKPI();
   drawLinkedInChart();
   renderLinkedinTopPosts();
+  drawLinkedInFollowerChart();
   renderLinkedinDemographics();
 }
 
