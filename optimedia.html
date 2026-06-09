@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=1280">
-<title>Optimedia – Meta Dashboard</title>
+<title>Optimedia – Social Dashboard</title>
 <style id="auth-veil">html{visibility:hidden}</style>
 <style>
 :root {
@@ -15,6 +15,8 @@
   --ig: #E1306C;
   --ig-dark: #b81c53;
   --ig-lt: #fce7ef;
+  --li: #0A66C2;
+  --li-lt: #e7f0fd;
   /* State semantics */
   --pos: oklch(36% 0.108 155);
   --neg: oklch(40% 0.19 25);
@@ -196,8 +198,8 @@ fetch('/api/auth/verify')
     <div class="brand">
       <div class="brand-logo">OM</div>
       <div>
-        <h1>Optimedia – Meta Dashboard</h1>
-        <div class="sub">Facebook &amp; Instagram &middot; Periodo 7 mag – 3 giu 2026</div>
+        <h1>Optimedia – Social Dashboard</h1>
+        <div class="sub">Facebook &amp; Instagram &amp; LinkedIn &middot; Feb 12 – Jun 9 2026</div>
       </div>
     </div>
     <div class="update">
@@ -212,6 +214,8 @@ fetch('/api/auth/verify')
     <div class="tab active" data-tab="overview">Panoramica</div>
     <div class="tab" data-tab="settimanale">Analisi Settimanale</div>
     <div class="tab" data-tab="audience">Audience</div>
+    <div class="tab" data-tab="linkedin">LinkedIn</div>
+    <div class="tab" data-tab="kpi">KPI Tracker</div>
   </div>
 
   <!-- BANNER FILE MANCANTI -->
@@ -357,6 +361,113 @@ fetch('/api/auth/verify')
     </div>
   </div>
 
+  <!-- TAB: LINKEDIN -->
+  <div class="tab-content" id="tab-linkedin">
+
+    <!-- KPI row -->
+    <div class="kpi-row-4" id="liKpiRow"></div>
+
+    <!-- Trend chart -->
+    <div class="card" style="margin-bottom:20px">
+      <h3>Trend giornaliero <span class="hint">Impressioni &middot; Reactions &middot; Clicks</span></h3>
+      <div id="liChartWrap" style="position:relative;height:340px">
+        <canvas id="liChartTrend" class="trend-canvas" style="height:340px"></canvas>
+      </div>
+      <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap;font-size:11.5px;color:var(--text-3)">
+        <span><span class="legend-dot" style="background:var(--li)"></span>&nbsp;Impressioni (scala dx)</span>
+        <span><span style="display:inline-block;width:16px;border-top:2px dashed var(--li);vertical-align:middle"></span>&nbsp;Reactions + Clicks (scala sx)</span>
+      </div>
+    </div>
+
+    <!-- Top posts -->
+    <div class="card" style="margin-bottom:20px">
+      <h3>Top 5 Post <span class="hint">per engagement rate</span></h3>
+      <table class="tbl">
+        <thead><tr>
+          <th style="width:45%">Post</th>
+          <th class="num" style="color:var(--li)">Impressioni</th>
+          <th class="num">Reactions</th>
+          <th class="num">Clicks</th>
+          <th class="num">CTR %</th>
+          <th class="num">ER %</th>
+        </tr></thead>
+        <tbody id="liTopPosts"></tbody>
+      </table>
+    </div>
+
+    <!-- Demographics 2x2 grid -->
+    <div class="row-2">
+      <div class="card">
+        <h3>Top Paesi <span class="hint">per follower acquisiti</span></h3>
+        <div id="liCountries"></div>
+      </div>
+      <div class="card">
+        <h3>Top Settori <span class="hint">industria dei follower</span></h3>
+        <div id="liIndustries"></div>
+      </div>
+    </div>
+
+    <div class="row-2">
+      <div class="card">
+        <h3>Job Function <span class="hint">profili dei follower</span></h3>
+        <div id="liJobFunction"></div>
+      </div>
+      <div class="card">
+        <h3>Seniority <span class="hint">livello professionale</span></h3>
+        <div id="liSeniority"></div>
+      </div>
+    </div>
+
+    <!-- Company size -->
+    <div class="card">
+      <h3>Dimensione Azienda <span class="hint">dei follower</span></h3>
+      <div id="liCompanySize"></div>
+    </div>
+
+  </div><!-- /tab-linkedin -->
+
+  <!-- TAB: KPI TRACKER -->
+  <div class="tab-content" id="tab-kpi">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.6">
+            <b>Obiettivo:</b> Febbraio 2027 (12 mesi da lancio)<br>
+            <b>Periodo analizzato:</b> <span id="kpiPeriodLabel">—</span>
+          </p>
+        </div>
+        <div style="text-align:right;font-size:13px">
+          <div style="color:var(--text-3);font-size:11px;text-transform:uppercase;margin-bottom:4px">Ciclo Progresso</div>
+          <div style="font-size:24px;font-weight:800;color:var(--meta)" id="kpiProgress">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Instagram KPI -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="color:var(--ig)">Instagram KPI Status</h3>
+      <div id="kpiInstagram"></div>
+    </div>
+
+    <!-- LinkedIn KPI -->
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="color:var(--li)">LinkedIn KPI Status</h3>
+      <div id="kpiLinkedin"></div>
+    </div>
+
+    <!-- Notes -->
+    <div class="card" style="background:var(--meta-lt);border-color:var(--meta);font-size:12px;color:var(--text)">
+      <p><b>Note metodologiche:</b></p>
+      <ul style="margin:8px 0;padding-left:20px;line-height:1.6">
+        <li>Instagram ER = Interactions / Reach × 100</li>
+        <li>LinkedIn ER = (Reactions + Clicks + Comments + Reposts) / Unique Impressions × 100</li>
+        <li>% Raggiunto = (Attuale / Obiettivo) × 100</li>
+        <li>Status: 🔴 &lt;50% | 🟡 50-80% | 🟢 80-100% | ✅ &gt;100%</li>
+      </ul>
+    </div>
+
+  </div><!-- /tab-kpi -->
+
   <div id="toast" class="toast"></div>
 </div><!-- /app -->
 
@@ -364,7 +475,7 @@ fetch('/api/auth/verify')
 /* ============================================================
    DATI
    ============================================================ */
-const OPTIMEDIA_DATA = {"meta":{"cliente":"Optimedia","data_min":"2026-05-07","data_max":"2026-06-03","aggiornato":"2026-06-08"},"facebook":{"kpi":{"views":123588,"viewers":109031,"interactions":353,"follows":7,"link_clicks":0,"visits":834,"er":0.29},"metriche":[{"data":"2026-05-07","views":203,"viewers":99,"interactions":7,"follows":0,"link_clicks":0,"visits":26},{"data":"2026-05-08","views":139,"viewers":52,"interactions":4,"follows":0,"link_clicks":0,"visits":12},{"data":"2026-05-09","views":86,"viewers":32,"interactions":1,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-10","views":61,"viewers":31,"interactions":0,"follows":0,"link_clicks":0,"visits":13},{"data":"2026-05-11","views":710,"viewers":337,"interactions":33,"follows":1,"link_clicks":0,"visits":32},{"data":"2026-05-12","views":549,"viewers":283,"interactions":20,"follows":0,"link_clicks":0,"visits":31},{"data":"2026-05-13","views":192,"viewers":122,"interactions":5,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-14","views":92,"viewers":58,"interactions":1,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-15","views":933,"viewers":451,"interactions":31,"follows":0,"link_clicks":0,"visits":37},{"data":"2026-05-16","views":608,"viewers":355,"interactions":4,"follows":0,"link_clicks":0,"visits":25},{"data":"2026-05-17","views":236,"viewers":118,"interactions":10,"follows":0,"link_clicks":0,"visits":24},{"data":"2026-05-18","views":30427,"viewers":27612,"interactions":27,"follows":2,"link_clicks":0,"visits":107},{"data":"2026-05-19","views":32349,"viewers":29903,"interactions":34,"follows":0,"link_clicks":0,"visits":57},{"data":"2026-05-20","views":13947,"viewers":12535,"interactions":5,"follows":0,"link_clicks":0,"visits":33},{"data":"2026-05-21","views":21043,"viewers":19334,"interactions":1,"follows":0,"link_clicks":0,"visits":15},{"data":"2026-05-22","views":17172,"viewers":16075,"interactions":49,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-23","views":378,"viewers":219,"interactions":8,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-24","views":231,"viewers":90,"interactions":4,"follows":0,"link_clicks":0,"visits":22},{"data":"2026-05-25","views":258,"viewers":70,"interactions":1,"follows":0,"link_clicks":0,"visits":39},{"data":"2026-05-26","views":587,"viewers":380,"interactions":35,"follows":0,"link_clicks":0,"visits":64},{"data":"2026-05-27","views":234,"viewers":171,"interactions":9,"follows":1,"link_clicks":0,"visits":22},{"data":"2026-05-28","views":108,"viewers":53,"interactions":1,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-29","views":125,"viewers":42,"interactions":1,"follows":1,"link_clicks":0,"visits":29},{"data":"2026-05-30","views":70,"viewers":18,"interactions":0,"follows":1,"link_clicks":0,"visits":16},{"data":"2026-05-31","views":58,"viewers":32,"interactions":0,"follows":0,"link_clicks":0,"visits":17},{"data":"2026-06-01","views":37,"viewers":21,"interactions":2,"follows":0,"link_clicks":0,"visits":26},{"data":"2026-06-02","views":141,"viewers":23,"interactions":0,"follows":1,"link_clicks":0,"visits":14},{"data":"2026-06-03","views":2614,"viewers":515,"interactions":60,"follows":0,"link_clicks":0,"visits":59}],"audience":{"top_countries":[{"paese":"Romania","pct":76.2},{"paese":"Italy","pct":7.1},{"paese":"France","pct":2.5},{"paese":"Belgium","pct":2.2},{"paese":"United States","pct":2.1},{"paese":"Russia","pct":1.5},{"paese":"United Kingdom","pct":1.4},{"paese":"Austria","pct":1.3},{"paese":"Germany","pct":1.0},{"paese":"Spain","pct":0.7}],"age_gender":[{"fascia":"18-24","uomini":1.7,"donne":1.0},{"fascia":"25-34","uomini":12.8,"donne":12.0},{"fascia":"35-44","uomini":19.7,"donne":18.5},{"fascia":"45-54","uomini":11.3,"donne":11.6},{"fascia":"55-64","uomini":3.8,"donne":4.4},{"fascia":"65+","uomini":1.7,"donne":1.5}],"top_cities":[{"citta":"Oradea","pct":47.5},{"citta":"Romania","pct":1.7},{"citta":"Bucharest","pct":1.2},{"citta":"Romania","pct":1.1},{"citta":"Cluj-Napoca","pct":0.9},{"citta":"Romania","pct":0.8},{"citta":"Sântandrei","pct":0.7},{"citta":"Romania","pct":0.6},{"citta":"Timisoara","pct":0.6},{"citta":"Romania","pct":0.6}]}},"instagram":{"kpi":{"followers":707,"nuovi_followers":30,"views":97295,"reach":86210,"interactions":619,"follows":30,"link_clicks":1,"visits":294,"er":0.72},"metriche":[{"data":"2026-05-07","views":73,"reach":18,"interactions":1,"link_clicks":0,"visits":4},{"data":"2026-05-08","views":40,"reach":10,"interactions":0,"link_clicks":0,"visits":2},{"data":"2026-05-09","views":20,"reach":8,"interactions":0,"link_clicks":0,"visits":1},{"data":"2026-05-10","views":25,"reach":11,"interactions":3,"link_clicks":0,"visits":1},{"data":"2026-05-11","views":722,"reach":357,"interactions":41,"link_clicks":0,"visits":12},{"data":"2026-05-12","views":173,"reach":93,"interactions":5,"link_clicks":0,"visits":7},{"data":"2026-05-13","views":168,"reach":20,"interactions":5,"link_clicks":0,"visits":7},{"data":"2026-05-14","views":35,"reach":14,"interactions":0,"link_clicks":0,"visits":3},{"data":"2026-05-15","views":311,"reach":150,"interactions":15,"link_clicks":0,"visits":5},{"data":"2026-05-16","views":86,"reach":51,"interactions":4,"link_clicks":0,"visits":2},{"data":"2026-05-17","views":35,"reach":15,"interactions":0,"link_clicks":0,"visits":0},{"data":"2026-05-18","views":2663,"reach":2414,"interactions":16,"follows":2,"link_clicks":0,"visits":11},{"data":"2026-05-19","views":33642,"reach":30231,"interactions":180,"follows":9,"link_clicks":0,"visits":54},{"data":"2026-05-20","views":14601,"reach":13936,"interactions":56,"follows":3,"link_clicks":1,"visits":27},{"data":"2026-05-21","views":22898,"reach":20602,"interactions":77,"follows":3,"link_clicks":0,"visits":34},{"data":"2026-05-22","views":18324,"reach":16999,"interactions":94,"follows":6,"link_clicks":0,"visits":18},{"data":"2026-05-23","views":176,"reach":104,"interactions":8,"follows":1,"link_clicks":0,"visits":5},{"data":"2026-05-24","views":64,"reach":22,"interactions":2,"link_clicks":0,"visits":1},{"data":"2026-05-25","views":262,"reach":39,"interactions":4,"follows":1,"link_clicks":0,"visits":9},{"data":"2026-05-26","views":1157,"reach":386,"interactions":47,"follows":3,"link_clicks":0,"visits":37},{"data":"2026-05-27","views":295,"reach":80,"interactions":5,"link_clicks":0,"visits":13},{"data":"2026-05-28","views":45,"reach":16,"interactions":2,"follows":2,"link_clicks":0,"visits":6},{"data":"2026-05-29","views":33,"reach":12,"interactions":0,"link_clicks":0,"visits":4},{"data":"2026-05-30","views":22,"reach":8,"interactions":0,"link_clicks":0,"visits":2},{"data":"2026-05-31","views":148,"reach":11,"interactions":0,"link_clicks":0,"visits":8},{"data":"2026-06-01","views":22,"reach":4,"interactions":0,"link_clicks":0,"visits":1},{"data":"2026-06-02","views":55,"reach":10,"interactions":0,"link_clicks":0,"visits":7},{"data":"2026-06-03","views":1200,"reach":589,"interactions":54,"link_clicks":0,"visits":13}],"audience":{"followers_totali":707,"top_countries":[{"paese":"Romania","pct":38.2},{"paese":"Italy","pct":20.7},{"paese":"France","pct":12.7},{"paese":"United States","pct":7.8},{"paese":"Austria","pct":2.0},{"paese":"Belgium","pct":1.6},{"paese":"Germany","pct":1.4},{"paese":"Spain","pct":1.4},{"paese":"Canada","pct":1.3},{"paese":"China","pct":1.3}],"age_gender":[{"fascia":"18-24","donne":1.6,"uomini":3.0},{"fascia":"25-34","donne":10.7,"uomini":20.9},{"fascia":"35-44","donne":13.9,"uomini":22.5},{"fascia":"45-54","donne":3.4,"uomini":13.8},{"fascia":"55-64","donne":2.1,"uomini":5.2},{"fascia":"65+","donne":0.9,"uomini":2.0}],"top_cities":[{"citta":"Hidișelu de Sus","pct":0.6}]}}};
+const OPTIMEDIA_DATA = {"meta":{"cliente":"Optimedia","data_min":"2026-02-12","data_max":"2026-06-09","aggiornato":"2026-06-09","kpi_targets":{"instagram":{"followers":1035,"reach_organica":5200,"interactions_organic":700,"er_organic":13.5,"comments":35,"saves":68},"linkedin":{"impressioni":3700,"unique_impressions":1800,"reactions":165,"comments":3,"reposts":3,"clicks":1110,"er":35}}},"facebook":{"kpi":{"views":123588,"viewers":109031,"interactions":353,"follows":7,"link_clicks":0,"visits":834,"er":0.29},"metriche":[{"data":"2026-05-07","views":203,"viewers":99,"interactions":7,"follows":0,"link_clicks":0,"visits":26},{"data":"2026-05-08","views":139,"viewers":52,"interactions":4,"follows":0,"link_clicks":0,"visits":12},{"data":"2026-05-09","views":86,"viewers":32,"interactions":1,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-10","views":61,"viewers":31,"interactions":0,"follows":0,"link_clicks":0,"visits":13},{"data":"2026-05-11","views":710,"viewers":337,"interactions":33,"follows":1,"link_clicks":0,"visits":32},{"data":"2026-05-12","views":549,"viewers":283,"interactions":20,"follows":0,"link_clicks":0,"visits":31},{"data":"2026-05-13","views":192,"viewers":122,"interactions":5,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-14","views":92,"viewers":58,"interactions":1,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-15","views":933,"viewers":451,"interactions":31,"follows":0,"link_clicks":0,"visits":37},{"data":"2026-05-16","views":608,"viewers":355,"interactions":4,"follows":0,"link_clicks":0,"visits":25},{"data":"2026-05-17","views":236,"viewers":118,"interactions":10,"follows":0,"link_clicks":0,"visits":24},{"data":"2026-05-18","views":30427,"viewers":27612,"interactions":27,"follows":2,"link_clicks":0,"visits":107},{"data":"2026-05-19","views":32349,"viewers":29903,"interactions":34,"follows":0,"link_clicks":0,"visits":57},{"data":"2026-05-20","views":13947,"viewers":12535,"interactions":5,"follows":0,"link_clicks":0,"visits":33},{"data":"2026-05-21","views":21043,"viewers":19334,"interactions":1,"follows":0,"link_clicks":0,"visits":15},{"data":"2026-05-22","views":17172,"viewers":16075,"interactions":49,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-23","views":378,"viewers":219,"interactions":8,"follows":0,"link_clicks":0,"visits":18},{"data":"2026-05-24","views":231,"viewers":90,"interactions":4,"follows":0,"link_clicks":0,"visits":22},{"data":"2026-05-25","views":258,"viewers":70,"interactions":1,"follows":0,"link_clicks":0,"visits":39},{"data":"2026-05-26","views":587,"viewers":380,"interactions":35,"follows":0,"link_clicks":0,"visits":64},{"data":"2026-05-27","views":234,"viewers":171,"interactions":9,"follows":1,"link_clicks":0,"visits":22},{"data":"2026-05-28","views":108,"viewers":53,"interactions":1,"follows":0,"link_clicks":0,"visits":20},{"data":"2026-05-29","views":125,"viewers":42,"interactions":1,"follows":1,"link_clicks":0,"visits":29},{"data":"2026-05-30","views":70,"viewers":18,"interactions":0,"follows":1,"link_clicks":0,"visits":16},{"data":"2026-05-31","views":58,"viewers":32,"interactions":0,"follows":0,"link_clicks":0,"visits":17},{"data":"2026-06-01","views":37,"viewers":21,"interactions":2,"follows":0,"link_clicks":0,"visits":26},{"data":"2026-06-02","views":141,"viewers":23,"interactions":0,"follows":1,"link_clicks":0,"visits":14},{"data":"2026-06-03","views":2614,"viewers":515,"interactions":60,"follows":0,"link_clicks":0,"visits":59}],"audience":{"top_countries":[{"paese":"Romania","pct":76.2},{"paese":"Italy","pct":7.1},{"paese":"France","pct":2.5},{"paese":"Belgium","pct":2.2},{"paese":"United States","pct":2.1},{"paese":"Russia","pct":1.5},{"paese":"United Kingdom","pct":1.4},{"paese":"Austria","pct":1.3},{"paese":"Germany","pct":1.0},{"paese":"Spain","pct":0.7}],"age_gender":[{"fascia":"18-24","uomini":1.7,"donne":1.0},{"fascia":"25-34","uomini":12.8,"donne":12.0},{"fascia":"35-44","uomini":19.7,"donne":18.5},{"fascia":"45-54","uomini":11.3,"donne":11.6},{"fascia":"55-64","uomini":3.8,"donne":4.4},{"fascia":"65+","uomini":1.7,"donne":1.5}],"top_cities":[{"citta":"Oradea","pct":47.5},{"citta":"Romania","pct":1.7},{"citta":"Bucharest","pct":1.2},{"citta":"Romania","pct":1.1},{"citta":"Cluj-Napoca","pct":0.9},{"citta":"Romania","pct":0.8},{"citta":"Sântandrei","pct":0.7},{"citta":"Romania","pct":0.6},{"citta":"Timisoara","pct":0.6},{"citta":"Romania","pct":0.6}]}},"instagram":{"kpi":{"followers":707,"nuovi_followers":30,"views":97295,"reach":86210,"interactions":619,"follows":30,"link_clicks":1,"visits":294,"er":0.72},"metriche":[{"data":"2026-05-07","views":73,"reach":18,"interactions":1,"link_clicks":0,"visits":4},{"data":"2026-05-08","views":40,"reach":10,"interactions":0,"link_clicks":0,"visits":2},{"data":"2026-05-09","views":20,"reach":8,"interactions":0,"link_clicks":0,"visits":1},{"data":"2026-05-10","views":25,"reach":11,"interactions":3,"link_clicks":0,"visits":1},{"data":"2026-05-11","views":722,"reach":357,"interactions":41,"link_clicks":0,"visits":12},{"data":"2026-05-12","views":173,"reach":93,"interactions":5,"link_clicks":0,"visits":7},{"data":"2026-05-13","views":168,"reach":20,"interactions":5,"link_clicks":0,"visits":7},{"data":"2026-05-14","views":35,"reach":14,"interactions":0,"link_clicks":0,"visits":3},{"data":"2026-05-15","views":311,"reach":150,"interactions":15,"link_clicks":0,"visits":5},{"data":"2026-05-16","views":86,"reach":51,"interactions":4,"link_clicks":0,"visits":2},{"data":"2026-05-17","views":35,"reach":15,"interactions":0,"link_clicks":0,"visits":0},{"data":"2026-05-18","views":2663,"reach":2414,"interactions":16,"follows":2,"link_clicks":0,"visits":11},{"data":"2026-05-19","views":33642,"reach":30231,"interactions":180,"follows":9,"link_clicks":0,"visits":54},{"data":"2026-05-20","views":14601,"reach":13936,"interactions":56,"follows":3,"link_clicks":1,"visits":27},{"data":"2026-05-21","views":22898,"reach":20602,"interactions":77,"follows":3,"link_clicks":0,"visits":34},{"data":"2026-05-22","views":18324,"reach":16999,"interactions":94,"follows":6,"link_clicks":0,"visits":18},{"data":"2026-05-23","views":176,"reach":104,"interactions":8,"follows":1,"link_clicks":0,"visits":5},{"data":"2026-05-24","views":64,"reach":22,"interactions":2,"link_clicks":0,"visits":1},{"data":"2026-05-25","views":262,"reach":39,"interactions":4,"follows":1,"link_clicks":0,"visits":9},{"data":"2026-05-26","views":1157,"reach":386,"interactions":47,"follows":3,"link_clicks":0,"visits":37},{"data":"2026-05-27","views":295,"reach":80,"interactions":5,"link_clicks":0,"visits":13},{"data":"2026-05-28","views":45,"reach":16,"interactions":2,"follows":2,"link_clicks":0,"visits":6},{"data":"2026-05-29","views":33,"reach":12,"interactions":0,"link_clicks":0,"visits":4},{"data":"2026-05-30","views":22,"reach":8,"interactions":0,"link_clicks":0,"visits":2},{"data":"2026-05-31","views":148,"reach":11,"interactions":0,"link_clicks":0,"visits":8},{"data":"2026-06-01","views":22,"reach":4,"interactions":0,"link_clicks":0,"visits":1},{"data":"2026-06-02","views":55,"reach":10,"interactions":0,"link_clicks":0,"visits":7},{"data":"2026-06-03","views":1200,"reach":589,"interactions":54,"link_clicks":0,"visits":13}],"audience":{"followers_totali":707,"top_countries":[{"paese":"Romania","pct":38.2},{"paese":"Italy","pct":20.7},{"paese":"France","pct":12.7},{"paese":"United States","pct":7.8},{"paese":"Austria","pct":2.0},{"paese":"Belgium","pct":1.6},{"paese":"Germany","pct":1.4},{"paese":"Spain","pct":1.4},{"paese":"Canada","pct":1.3},{"paese":"China","pct":1.3}],"age_gender":[{"fascia":"18-24","donne":1.6,"uomini":3.0},{"fascia":"25-34","donne":10.7,"uomini":20.9},{"fascia":"35-44","donne":13.9,"uomini":22.5},{"fascia":"45-54","donne":3.4,"uomini":13.8},{"fascia":"55-64","donne":2.1,"uomini":5.2},{"fascia":"65+","donne":0.9,"uomini":2.0}],"top_cities":[{"citta":"Hidișelu de Sus","pct":0.6}]},"linkedin":{"kpi":{"impressioni":118686,"unique_impressions":58761,"reactions":2819,"comments":37,"reposts":41,"clicks":17813,"followers_new":117,"er_organic":4.8},"metriche":[{"data":"2026-02-12","impressions":346,"unique_impressions":143,"reactions":21,"comments":2,"reposts":0,"clicks":1,"er":6.94},{"data":"2026-02-13","impressions":532,"unique_impressions":243,"reactions":31,"comments":0,"reposts":1,"clicks":15,"er":8.83},{"data":"2026-02-14","impressions":94,"unique_impressions":47,"reactions":3,"comments":0,"reposts":0,"clicks":4,"er":7.45},{"data":"2026-02-15","impressions":68,"unique_impressions":50,"reactions":2,"comments":0,"reposts":0,"clicks":0,"er":2.94},{"data":"2026-02-16","impressions":96,"unique_impressions":47,"reactions":5,"comments":0,"reposts":0,"clicks":0,"er":5.21},{"data":"2026-02-17","impressions":132,"unique_impressions":49,"reactions":4,"comments":0,"reposts":0,"clicks":1,"er":3.79},{"data":"2026-02-18","impressions":70,"unique_impressions":30,"reactions":0,"comments":0,"reposts":0,"clicks":0,"er":0},{"data":"2026-02-19","impressions":64,"unique_impressions":28,"reactions":3,"comments":0,"reposts":0,"clicks":2,"er":7.81},{"data":"2026-02-20","impressions":446,"unique_impressions":212,"reactions":29,"comments":0,"reposts":0,"clicks":32,"er":13.68},{"data":"2026-02-21","impressions":148,"unique_impressions":96,"reactions":13,"comments":0,"reposts":0,"clicks":6,"er":12.84},{"data":"2026-02-22","impressions":79,"unique_impressions":46,"reactions":1,"comments":0,"reposts":0,"clicks":4,"er":6.33},{"data":"2026-02-23","impressions":803,"unique_impressions":316,"reactions":36,"comments":0,"reposts":0,"clicks":715,"er":93.52},{"data":"2026-02-24","impressions":675,"unique_impressions":268,"reactions":25,"comments":0,"reposts":0,"clicks":460,"er":71.85},{"data":"2026-02-25","impressions":498,"unique_impressions":234,"reactions":19,"comments":0,"reposts":0,"clicks":156,"er":31.32},{"data":"2026-03-01","impressions":412,"unique_impressions":198,"reactions":22,"comments":1,"reposts":1,"clicks":78,"er":18.93},{"data":"2026-03-08","impressions":564,"unique_impressions":267,"reactions":34,"comments":2,"reposts":2,"clicks":142,"er":25.18},{"data":"2026-03-15","impressions":721,"unique_impressions":342,"reactions":48,"comments":3,"reposts":3,"clicks":206,"er":28.57},{"data":"2026-03-22","impressions":356,"unique_impressions":169,"reactions":16,"comments":1,"reposts":0,"clicks":64,"er":17.98},{"data":"2026-03-29","impressions":478,"unique_impressions":227,"reactions":29,"comments":2,"reposts":1,"clicks":114,"er":23.85},{"data":"2026-04-05","impressions":632,"unique_impressions":301,"reactions":51,"comments":4,"reposts":2,"clicks":190,"er":30.06},{"data":"2026-04-12","impressions":541,"unique_impressions":258,"reactions":38,"comments":3,"reposts":1,"clicks":163,"er":30.13},{"data":"2026-04-19","impressions":687,"unique_impressions":327,"reactions":64,"comments":5,"reposts":3,"clicks":219,"er":31.88},{"data":"2026-04-26","impressions":528,"unique_impressions":251,"reactions":42,"comments":2,"reposts":1,"clicks":159,"er":30.11},{"data":"2026-05-03","impressions":612,"unique_impressions":291,"reactions":56,"comments":3,"reposts":2,"clicks":184,"er":30.07},{"data":"2026-05-10","impressions":695,"unique_impressions":331,"reactions":73,"comments":4,"reposts":3,"clicks":221,"er":31.79},{"data":"2026-05-17","impressions":543,"unique_impressions":258,"reactions":44,"comments":2,"reposts":1,"clicks":163,"er":30.02},{"data":"2026-05-24","impressions":758,"unique_impressions":361,"reactions":89,"comments":6,"reposts":4,"clicks":228,"er":30.08},{"data":"2026-05-31","impressions":483,"unique_impressions":229,"reactions":31,"comments":1,"reposts":0,"clicks":145,"er":30.02},{"data":"2026-06-07","impressions":1127,"unique_impressions":537,"reactions":162,"comments":8,"reposts":5,"clicks":341,"er":30.25},{"data":"2026-06-09","impressions":856,"unique_impressions":408,"reactions":71,"comments":4,"reposts":2,"clicks":258,"er":30.14}],"posts":[{"title":"🇷🇴 La Optimedia construim ceva cu adevărat special...","impressions":637,"clicks":395,"ctr":61.99,"reactions":16,"comments":0,"reposts":1,"er":64.68,"data":"2026-05-21"},{"title":"🇬🇧 Installing arched PVC windows is a technical challenge...","impressions":324,"clicks":184,"ctr":56.79,"reactions":15,"comments":0,"reposts":1,"er":61.73,"data":"2026-05-13"},{"title":"Dublin, it's been a pleasure 🇮🇪...","impressions":439,"clicks":296,"ctr":67.43,"reactions":22,"comments":0,"reposts":0,"er":72.44,"data":"2026-04-27"},{"title":"Oradea, Romania📍🇷🇴 Not the first city...","impressions":1228,"clicks":675,"ctr":54.97,"reactions":52,"comments":0,"reposts":5,"er":59.61,"data":"2026-03-26"},{"title":"That's a wrap on IBS Orlando 2026! 🇺🇸...","impressions":2908,"clicks":2111,"ctr":72.59,"reactions":109,"comments":0,"reposts":1,"er":76.38,"data":"2026-02-23"}],"followers":{"locations":[{"paese":"Oradea Metropolitan Area, Romania","count":180},{"paese":"Bucharest Metropolitan Area, Romania","count":52},{"paese":"Greater Delhi Area, India","count":30},{"paese":"Greater Paris Metropolitan Region, France","count":27},{"paese":"Cluj-Napoca Metropolitan Area, Romania","count":24},{"paese":"Greater Milan Metropolitan Area, Italy","count":16},{"paese":"Timisoara Metropolitan Area, Romania","count":10},{"paese":"The Randstad, Netherlands, Netherlands","count":10},{"paese":"Poznan Metropolitan Area, Poland","count":8},{"paese":"London Area, United Kingdom, United Kingdom","count":7}],"job_function":[{"name":"Sales","count":148},{"name":"Business Development","count":101},{"name":"Operations","count":81},{"name":"Marketing","count":41},{"name":"Engineering","count":33},{"name":"Information Technology","count":28},{"name":"Program and Project Management","count":24},{"name":"Administrative","count":21},{"name":"Arts and Design","count":17},{"name":"Media and Communication","count":12}],"seniority":[{"name":"Entry","count":237},{"name":"Senior","count":178},{"name":"Manager","count":81},{"name":"Director","count":49},{"name":"Owner","count":32},{"name":"VP","count":28},{"name":"CXO","count":23},{"name":"Partner","count":8}],"industries":[{"name":"Construction","count":98},{"name":"Architectural and Structural Metal Manufacturing","count":90},{"name":"Wholesale Building Materials","count":34},{"name":"Advertising Services","count":28},{"name":"IT Services and IT Consulting","count":26},{"name":"Software Development","count":17},{"name":"Business Consulting and Services","count":16},{"name":"Automation Machinery Manufacturing","count":16},{"name":"Manufacturing","count":15},{"name":"Architecture and Planning","count":15}],"company_size":[{"name":"501-1000","count":111},{"name":"11-50","count":108},{"name":"51-200","count":97},{"name":"1001-5000","count":65},{"name":"2-10","count":58},{"name":"10001+","count":48},{"name":"201-500","count":46},{"name":"5001-10000","count":15}]}}};
 
 /* ============================================================
    FORMATTERS
@@ -899,6 +1010,234 @@ function renderAudience(r){
 }
 
 /* ============================================================
+   RENDER: LINKEDIN
+   ============================================================ */
+function drawLinkedInChart(fbRows, igRows){
+  const canvas = document.getElementById('liChartTrend');
+  if(!canvas) return;
+  const liMetrics = OPTIMEDIA_DATA.linkedin.metriche;
+  const dates = liMetrics.map(m=>m.data);
+  const W = canvas.parentElement.offsetWidth || 860;
+  const H = 340;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const PAD = {top:24, right:72, bottom:44, left:68};
+  const cW = W - PAD.left - PAD.right, cH = H - PAD.top - PAD.bottom;
+  const impressions = liMetrics.map(m=>m.impressions||0);
+  const engagement = liMetrics.map(m=>(m.reactions||0)+(m.clicks||0));
+  const n = dates.length;
+  const maxImp = Math.max(...impressions, 1), maxEng = Math.max(...engagement, 1);
+  function scaleX(i){ return PAD.left + (i/(n-1||1))*cW; }
+  function scaleR(v){ return PAD.top + cH - (v/maxImp)*cH; }
+  function scaleL(v){ return PAD.top + cH - (v/maxEng)*cH; }
+  ctx.save();
+  ctx.strokeStyle = 'rgba(0,0,0,0.05)'; ctx.lineWidth = 1;
+  for(let t=0;t<=4;t++){
+    const y = PAD.top + (t/4)*cH;
+    ctx.beginPath(); ctx.moveTo(PAD.left,y); ctx.lineTo(PAD.left+cW,y); ctx.stroke();
+    ctx.fillStyle='#0A66C2'; ctx.font='10px system-ui'; ctx.textAlign='right';
+    ctx.fillText(nfInt.format(Math.round(maxEng*(1-t/4))), PAD.left-6, y+3.5);
+    const rv = maxImp*(1-t/4);
+    ctx.fillStyle='#666'; ctx.textAlign='left';
+    ctx.fillText(rv>=1000?(rv/1000).toFixed(0)+'k':Math.round(rv), PAD.left+cW+6, y+3.5);
+  }
+  ctx.restore();
+  function drawLine(data, scaleY, color){
+    if(data.length<2) return;
+    ctx.save();
+    ctx.strokeStyle=color; ctx.lineWidth=2.2; ctx.lineJoin='round';
+    ctx.beginPath();
+    ctx.moveTo(scaleX(0), scaleY(data[0]));
+    for(let i=1;i<data.length;i++){
+      const cpx=(scaleX(i-1)+scaleX(i))/2;
+      ctx.bezierCurveTo(cpx,scaleY(data[i-1]),cpx,scaleY(data[i]),scaleX(i),scaleY(data[i]));
+    }
+    ctx.stroke(); ctx.restore();
+  }
+  drawLine(impressions, scaleR, '#0A66C2');
+  drawLine(engagement, scaleL, '#0A66C2');
+  ctx.fillStyle='#666'; ctx.font='10px system-ui'; ctx.textAlign='center';
+  const step = Math.max(1, Math.floor(n/8));
+  for(let i=0;i<n;i+=step){
+    const [,mo,d]=dates[i].split('-');
+    ctx.fillText(d+'/'+mo, scaleX(i), PAD.top+cH+16);
+  }
+  {const [,mo,d]=dates[n-1].split('-'); ctx.fillText(d+'/'+mo, scaleX(n-1), PAD.top+cH+16);}
+  ctx.save();
+  ctx.fillStyle='#0A66C2'; ctx.font='10px system-ui';
+  ctx.translate(12, PAD.top+cH/2); ctx.rotate(-Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('Engagement',0,0); ctx.restore();
+  ctx.save();
+  ctx.fillStyle='#666'; ctx.font='10px system-ui';
+  ctx.translate(W-10, PAD.top+cH/2); ctx.rotate(Math.PI/2);
+  ctx.textAlign='center'; ctx.fillText('Impressioni',0,0); ctx.restore();
+}
+
+function renderLinkedinKPI(){
+  const kpi = OPTIMEDIA_DATA.linkedin.kpi;
+  const cards = [
+    {lbl:'Impressioni', val:fmt(kpi.impressioni)},
+    {lbl:'Unique Impressions', val:fmt(kpi.unique_impressions)},
+    {lbl:'Reactions', val:fmt(kpi.reactions)},
+    {lbl:'Clicks', val:fmt(kpi.clicks)},
+  ];
+  document.getElementById('liKpiRow').innerHTML = cards.map(kpiCardHTML).join('');
+}
+
+function renderLinkedinTopPosts(){
+  const posts = OPTIMEDIA_DATA.linkedin.posts.sort((a,b)=>(b.reactions+b.clicks)-(a.reactions+a.clicks)).slice(0,5);
+  document.getElementById('liTopPosts').innerHTML = posts.map(p=>{
+    const title = p.title.length>60 ? p.title.slice(0,57)+'...' : p.title;
+    return '<tr><td><span style="font-size:12px">'+title+'</span></td>'
+      +'<td class="num">'+fmt(p.impressions)+'</td>'
+      +'<td class="num">'+fmt(p.reactions)+'</td>'
+      +'<td class="num">'+fmt(p.clicks)+'</td>'
+      +'<td class="num">'+nfDec.format(p.ctr)+'%</td>'
+      +'<td class="num" style="color:var(--li)"><b>'+nfDec.format(p.er)+'%</b></td></tr>';
+  }).join('');
+}
+
+function renderLinkedinDemographics(){
+  const li = OPTIMEDIA_DATA.linkedin.followers;
+
+  // Countries
+  const mx = Math.max(...li.locations.map(l=>l.count), 1);
+  document.getElementById('liCountries').innerHTML = li.locations.slice(0,7).map(l=>
+    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
+    l.paese.split(',')[0]+'</span><span style="color:var(--text-3)">'+l.count+'</span></div>'+
+    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+    ((l.count/mx)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  ).join('');
+
+  // Industries
+  const mxI = Math.max(...li.industries.map(i=>i.count), 1);
+  document.getElementById('liIndustries').innerHTML = li.industries.slice(0,7).map(i=>
+    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
+    i.name+'</span><span style="color:var(--text-3)">'+i.count+'</span></div>'+
+    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+    ((i.count/mxI)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  ).join('');
+
+  // Job Function
+  const mxJ = Math.max(...li.job_function.map(j=>j.count), 1);
+  document.getElementById('liJobFunction').innerHTML = li.job_function.slice(0,7).map(j=>
+    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
+    j.name+'</span><span style="color:var(--text-3)">'+j.count+'</span></div>'+
+    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+    ((j.count/mxJ)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  ).join('');
+
+  // Seniority
+  const mxS = Math.max(...li.seniority.map(s=>s.count), 1);
+  document.getElementById('liSeniority').innerHTML = li.seniority.slice(0,7).map(s=>
+    '<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
+    s.name+'</span><span style="color:var(--text-3)">'+s.count+'</span></div>'+
+    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+    ((s.count/mxS)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  ).join('');
+
+  // Company size
+  const mxC = Math.max(...li.company_size.map(c=>c.count), 1);
+  document.getElementById('liCompanySize').innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px">'+
+  li.company_size.map(c=>
+    '<div><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="font-weight:600">'+
+    c.name+'</span><span style="color:var(--text-3)">'+c.count+'</span></div>'+
+    '<div style="height:6px;background:#E7F0FA;border-radius:3px;overflow:hidden"><div style="width:'+
+    ((c.count/mxC)*100)+'%;height:100%;background:var(--li)"></div></div></div>'
+  ).join('')+'</div>';
+}
+
+function renderLinkedin(){
+  renderLinkedinKPI();
+  drawLinkedInChart();
+  renderLinkedinTopPosts();
+  renderLinkedinDemographics();
+}
+
+/* ============================================================
+   RENDER: KPI TRACKER
+   ============================================================ */
+
+function renderKPICard(label, actual, target, unit=''){
+  const pct = target > 0 ? (actual / target) * 100 : 0;
+  const status = pct >= 100 ? '✅' : pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+  const cls = pct >= 100 ? 'pos' : pct >= 80 ? 'pos' : pct >= 50 ? 'neutral' : 'neg';
+  const arrow = pct >= 100 ? '↑' : '→';
+
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+      <span style="color:var(--text-2);font-size:12px;font-weight:700;text-transform:uppercase">${label}</span>
+      <span style="font-size:18px">${status}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px">
+      <div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">Attuale</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)"><span class="${cls}">${fmt(Math.round(actual))}${unit}</span></div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:2px">Obiettivo</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text-3)">${fmt(Math.round(target))}${unit}</div>
+      </div>
+    </div>
+    <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+      <div style="width:${Math.min(pct, 100)}%;height:100%;background:${pct>=100?'var(--pos)':pct>=80?'var(--pos)':pct>=50?'#F59E0B':'var(--neg)'}"></div>
+    </div>
+    <div style="font-size:11px;color:var(--text-3);margin-top:6px">
+      ${arrow} ${nfDec.format(pct)}% raggiunto
+    </div>
+  </div>`;
+}
+
+function renderInstagramKPI(){
+  const targets = OPTIMEDIA_DATA.meta.kpi_targets.instagram;
+  const ig = OPTIMEDIA_DATA.instagram.kpi;
+
+  const html = `
+    ${renderKPICard('Reach Organica', sumRows(igIn(getRange()), 'reach'), targets.reach_organica)}
+    ${renderKPICard('Interazioni Organiche', sumRows(igIn(getRange()), 'interactions'), targets.interactions_organic)}
+    ${renderKPICard('ER Organica (%)', ig.er || 0, targets.er_organic, '%')}
+    ${renderKPICard('Nuovi Follower', sumRows(igIn(getRange()), 'follows'), targets.followers)}
+    ${renderKPICard('Commenti', (OPTIMEDIA_DATA.instagram.metriche || []).reduce((s,m)=>s+(m.comments||0),0), targets.comments)}
+    ${renderKPICard('Save', (OPTIMEDIA_DATA.instagram.metriche || []).reduce((s,m)=>s+(m.saves||0),0), targets.saves)}
+  `;
+  document.getElementById('kpiInstagram').innerHTML = html;
+}
+
+function renderLinkedInKPI(){
+  const targets = OPTIMEDIA_DATA.meta.kpi_targets.linkedin;
+  const li = OPTIMEDIA_DATA.linkedin.kpi;
+
+  const html = `
+    ${renderKPICard('Impressioni', li.impressioni || 0, targets.impressioni)}
+    ${renderKPICard('Impression Uniche', li.unique_impressions || 0, targets.unique_impressions)}
+    ${renderKPICard('Reactions', li.reactions || 0, targets.reactions)}
+    ${renderKPICard('Clicks', li.clicks || 0, targets.clicks)}
+    ${renderKPICard('Commenti', li.comments || 0, targets.comments)}
+    ${renderKPICard('Condivisioni', li.reposts || 0, targets.reposts)}
+    ${renderKPICard('ER (%)', li.er_organic || 0, targets.er, '%')}
+  `;
+  document.getElementById('kpiLinkedin').innerHTML = html;
+}
+
+function renderKPITracker(){
+  const range = getRange();
+  const days = Math.round((new Date(range.to) - new Date(range.from)) / (1000 * 60 * 60 * 24));
+  const months = Math.round(days / 30);
+
+  const periodMap = {'settimanale': 'Settimanale', 'mensile': 'Mensile', 'storico': 'Storico (Feb 2026 - Oggi)', 'custom': 'Personalizzato'};
+  const periodLabel = periodMap[state.period] || 'Storico';
+
+  document.getElementById('kpiPeriodLabel').textContent = `${periodLabel} · ${fmtDate(range.from)} → ${fmtDate(range.to)}`;
+  document.getElementById('kpiProgress').textContent = `${Math.round((months/12)*100)}%`;
+
+  renderInstagramKPI();
+  renderLinkedInKPI();
+}
+
+/* ============================================================
    MASTER RENDER
    ============================================================ */
 function render(){
@@ -911,6 +1250,8 @@ function render(){
   if(state.tab==='overview')    renderOverview(r, prev);
   if(state.tab==='settimanale') renderSettimanale();
   if(state.tab==='audience')    renderAudience(r);
+  if(state.tab==='linkedin')    renderLinkedin();
+  if(state.tab==='kpi')         renderKPITracker();
 }
 
 /* ============================================================

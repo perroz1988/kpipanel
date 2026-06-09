@@ -67,8 +67,10 @@ CAMP_FILTER_KEYWORDS = ['krein']
 INBOX_OPT        = os.path.join(BASE, 'inbox', 'optimedia')
 INBOX_OPT_FB     = os.path.join(BASE, 'inbox', 'optimedia', 'Facebook')
 INBOX_OPT_IG     = os.path.join(BASE, 'inbox', 'optimedia', 'Instagram')
+INBOX_OPT_LI     = os.path.join(BASE, 'inbox', 'optimedia', 'LinkedIn')
 ARCHIVE_OPT_FB   = os.path.join(BASE, 'archive', 'optimedia', 'facebook')
 ARCHIVE_OPT_IG   = os.path.join(BASE, 'archive', 'optimedia', 'instagram')
+ARCHIVE_OPT_LI   = os.path.join(BASE, 'archive', 'optimedia', 'linkedin')
 ARCHIVE_OPT      = os.path.join(BASE, 'archive', 'optimedia')
 DASHBOARD_OPT    = os.path.join(BASE, 'optimedia.html')
 
@@ -507,7 +509,101 @@ def parse_meta_audience_ig(path):
             except: pass
     return result
 
-def build_optimedia_data(fb_archive_dir, ig_archive_dir):
+def parse_linkedin_xls(xls_files):
+    """Parsa file XLS LinkedIn (Metrics, Follower Analytics, All Posts)."""
+    metrics = {}
+    posts = []
+    followers = {'locations': [], 'job_function': [], 'seniority': [], 'industries': [], 'company_size': []}
+    follower_daily = {}
+
+    for fpath in xls_files:
+        fname_lower = os.path.basename(fpath).lower()
+        try:
+            wb = xlrd.open_workbook(fpath)
+
+            # Metrics file: "Linkedin dall'inizio" con sheet "Metrics"
+            if 'linkedin' in fname_lower and 'follower' not in fname_lower and 'visite' not in fname_lower:
+                try:
+                    ws = wb.sheet_by_name('Metrics')
+                    for row_idx in range(1, min(ws.nrows, 200)):  # Daily metrics
+                        try:
+                            date_val = str(int(ws.cell(row_idx, 0).value))
+                            if len(date_val) == 8:
+                                date_str = f"{date_val[:4]}-{date_val[4:6]}-{date_val[6:8]}"
+                            else:
+                                date_str = ws.cell(row_idx, 0).value
+                            impressions = int(ws.cell(row_idx, 2).value or 0)
+                            unique_impr = int(ws.cell(row_idx, 3).value or 0)
+                            clicks = int(ws.cell(row_idx, 6).value or 0)
+                            reactions = int(ws.cell(row_idx, 9).value or 0)
+                            comments = int(ws.cell(row_idx, 11).value or 0)
+                            reposts = int(ws.cell(row_idx, 14).value or 0)
+                            if impressions:
+                                er = round((reactions + clicks + comments + reposts) / unique_impr * 100 if unique_impr else 0, 2)
+                                metrics[date_str] = {
+                                    'data': date_str, 'impressions': impressions, 'unique_impressions': unique_impr,
+                                    'reactions': reactions, 'comments': comments, 'reposts': reposts, 'clicks': clicks, 'er': er
+                                }
+                        except: pass
+                    # All Posts sheet
+                    try:
+                        ws_posts = wb.sheet_by_name('All posts')
+                        for row_idx in range(1, min(ws_posts.nrows, 100)):
+                            try:
+                                title = str(ws_posts.cell(row_idx, 0).value)[:100]
+                                impr = int(ws_posts.cell(row_idx, 9).value or 0)
+                                clicks_p = int(ws_posts.cell(row_idx, 12).value or 0)
+                                reactions_p = int(ws_posts.cell(row_idx, 14).value or 0)
+                                if impr:
+                                    ctr = round(clicks_p / impr * 100, 2)
+                                    er_p = round((reactions_p + clicks_p) / impr * 100, 2)
+                                    posts.append({'title': title, 'impressions': impr, 'clicks': clicks_p, 'reactions': reactions_p, 'ctr': ctr, 'er': er_p})
+                            except: pass
+                    except: pass
+                except: pass
+
+            # Follower file: Daily new followers + Demographics
+            elif 'follower' in fname_lower:
+                try:
+                    # New followers sheet (daily tracking)
+                    try:
+                        ws_fol = wb.sheet_by_name('New followers')
+                        for row_idx in range(1, min(ws_fol.nrows, 200)):
+                            try:
+                                date_val = str(int(ws_fol.cell(row_idx, 0).value))
+                                if len(date_val) == 8:
+                                    date_str = f"{date_val[:4]}-{date_val[4:6]}-{date_val[6:8]}"
+                                else:
+                                    date_str = ws_fol.cell(row_idx, 0).value
+                                total_fol = int(ws_fol.cell(row_idx, 4).value or 0)  # Total followers column
+                                if total_fol:
+                                    follower_daily[date_str] = total_fol
+                            except: pass
+                    except: pass
+
+                    # Demographics sheets (Location, Job function, etc.)
+                    for sheet_name in ['Location', 'Job function', 'Seniority', 'Industry', 'Company size']:
+                        try:
+                            ws = wb.sheet_by_name(sheet_name)
+                            for row_idx in range(1, min(ws.nrows, 50)):
+                                try:
+                                    name = str(ws.cell(row_idx, 0).value)
+                                    count = int(ws.cell(row_idx, 1).value or 0)
+                                    if name and count:
+                                        key_map = {'Location': 'locations', 'Job function': 'job_function', 'Seniority': 'seniority', 'Industry': 'industries', 'Company size': 'company_size'}
+                                        key = key_map.get(sheet_name)
+                                        if key:
+                                            followers[key].append({'name': name, 'count': count})
+                                except: pass
+                        except: pass
+                except: pass
+        except Exception as e:
+            print(f'    WARN parsando {os.path.basename(fpath)}: {e}')
+
+    return sorted(metrics.values(), key=lambda x: x['data']), posts[:5], followers, sorted([{'data': d, 'total': c} for d, c in follower_daily.items()])
+
+
+def build_optimedia_data(fb_archive_dir, ig_archive_dir, li_archive_dir=None):
     """Legge tutti i CSV archiviati e costruisce OPTIMEDIA_DATA."""
     def load_series(folder, pattern):
         files = sorted(glob.glob(os.path.join(folder, f'*_{pattern}.csv')))
@@ -551,9 +647,11 @@ def build_optimedia_data(fb_archive_dir, ig_archive_dir):
         'follows':      load_series(ig_archive_dir, 'follows'),
         'link_clicks':  load_series(ig_archive_dir, 'link_clicks'),
         'visits':       load_series(ig_archive_dir, 'visits'),
+        'comments':     load_series(ig_archive_dir, 'comments'),
+        'saves':        load_series(ig_archive_dir, 'saves'),
     }
     ig_daily = merge_daily(ig_series)
-    ig_t = {k: totk(ig_daily, k) for k in ['views','reach','interactions','follows','link_clicks','visits']}
+    ig_t = {k: totk(ig_daily, k) for k in ['views','reach','interactions','follows','link_clicks','visits','comments','saves']}
     ig_er = round(ig_t['interactions'] / ig_t['reach'] * 100, 2) if ig_t['reach'] else 0
 
     # Audience (ultimo file disponibile)
@@ -562,11 +660,35 @@ def build_optimedia_data(fb_archive_dir, ig_archive_dir):
     fb_audience = parse_meta_audience_fb(fb_aud_files[-1]) if fb_aud_files else {}
     ig_audience = parse_meta_audience_ig(ig_aud_files[-1]) if ig_aud_files else {'followers_totali': 0}
 
-    all_dates = [r['data'] for r in fb_daily + ig_daily]
+    # LinkedIn
+    li_metrics = []
+    li_posts = []
+    li_followers = {'locations': [], 'job_function': [], 'seniority': [], 'industries': [], 'company_size': []}
+    li_follower_daily = []
+    if li_archive_dir:
+        li_files = sorted(glob.glob(os.path.join(li_archive_dir, '*.xls*')))
+        if li_files:
+            li_metrics, li_posts, li_followers, li_follower_daily = parse_linkedin_xls(li_files)
+
+    all_dates = [r['data'] for r in fb_daily + ig_daily + li_metrics]
     data_min = min(all_dates) if all_dates else ''
     data_max = max(all_dates) if all_dates else ''
 
-    return {
+    # LinkedIn KPI aggregates
+    li_kpi = {}
+    if li_metrics:
+        li_kpi = {
+            'impressioni': sum(m.get('impressions', 0) for m in li_metrics),
+            'unique_impressions': sum(m.get('unique_impressions', 0) for m in li_metrics),
+            'reactions': sum(m.get('reactions', 0) for m in li_metrics),
+            'comments': sum(m.get('comments', 0) for m in li_metrics),
+            'reposts': sum(m.get('reposts', 0) for m in li_metrics),
+            'clicks': sum(m.get('clicks', 0) for m in li_metrics),
+            'followers_new': sum(f.get('count', 0) for f in li_followers.get('locations', []) if 'new' in str(f).lower()),
+            'er_organic': round(sum(m.get('clicks', 0) + m.get('reactions', 0) for m in li_metrics) / sum(m.get('unique_impressions', 1) for m in li_metrics) * 100, 2) if li_metrics else 0,
+        }
+
+    result = {
         'meta': {'cliente': 'Optimedia', 'data_min': data_min, 'data_max': data_max,
                  'aggiornato': datetime.now().strftime('%Y-%m-%d')},
         'facebook': {
@@ -581,6 +703,17 @@ def build_optimedia_data(fb_archive_dir, ig_archive_dir):
             'audience': ig_audience,
         },
     }
+
+    if li_metrics:
+        result['linkedin'] = {
+            'kpi': li_kpi,
+            'metriche': li_metrics,
+            'posts': li_posts,
+            'followers': li_followers,
+            'follower_daily': li_follower_daily,
+        }
+
+    return result
 
 def update_optimedia_dashboard(data):
     """Sostituisce OPTIMEDIA_DATA in optimedia.html."""
@@ -615,6 +748,7 @@ def process_inbox_optimedia():
     ig_map = {
         'Views.csv': 'views', 'Reach.csv': 'reach', 'Interactions.csv': 'interactions',
         'Follows.csv': 'follows', 'Link clicks.csv': 'link_clicks', 'Visits.csv': 'visits',
+        'Comments.csv': 'comments', 'Saves.csv': 'saves',
         'Audience IG.csv': 'audience',
     }
 
@@ -630,6 +764,18 @@ def process_inbox_optimedia():
                 shutil.copy2(src, dst)
                 os.remove(src)
                 print(f'  {label}/{fname} → {os.path.basename(dst)}')
+                found = True
+
+    # LinkedIn XLS files
+    os.makedirs(ARCHIVE_OPT_LI, exist_ok=True)
+    if os.path.exists(INBOX_OPT_LI):
+        for fname in os.listdir(INBOX_OPT_LI):
+            if fname.endswith(('.xls', '.xlsx')):
+                src = os.path.join(INBOX_OPT_LI, fname)
+                dst = os.path.join(ARCHIVE_OPT_LI, f'{today}_{fname}')
+                shutil.copy2(src, dst)
+                os.remove(src)
+                print(f'  LinkedIn/{fname} → {os.path.basename(dst)}')
                 found = True
 
     return found
@@ -1596,6 +1742,7 @@ def main():
         # 2. Ricostruisci OPTIMEDIA_DATA dall'archivio
         fb_files = glob.glob(os.path.join(ARCHIVE_OPT_FB, '*.csv'))
         ig_files = glob.glob(os.path.join(ARCHIVE_OPT_IG, '*.csv'))
+        li_files = glob.glob(os.path.join(ARCHIVE_OPT_LI, '*.xls*'))
 
         if not fb_files:
             print('  ⚠  FILE MANCANTE: Facebook CSV')
@@ -1605,17 +1752,24 @@ def main():
             print('  ⚠  FILE MANCANTE: Instagram CSV')
             print('     → Scarica da Meta Business Suite → Insight → Esporta')
             print(f'     → Metti in: inbox/optimedia/Instagram/  (Views, Reach, Interactions, Follows, Visits, Link clicks, Audience IG)')
+        if not li_files:
+            print('  ⚠  FILE MANCANTE: LinkedIn XLS')
+            print('     → Scarica da LinkedIn Analytics')
+            print(f'     → Metti in: inbox/optimedia/LinkedIn/  (Daily Metrics, Follower Analytics, Page Visits)')
 
         if fb_files or ig_files:
             print('\nAggiornamento optimedia.html...')
             try:
-                opt_data = build_optimedia_data(ARCHIVE_OPT_FB, ARCHIVE_OPT_IG)
+                opt_data = build_optimedia_data(ARCHIVE_OPT_FB, ARCHIVE_OPT_IG, ARCHIVE_OPT_LI if li_files else None)
                 m = opt_data['meta']
                 fb_k = opt_data['facebook']['kpi']
                 ig_k = opt_data['instagram']['kpi']
                 print(f'  Periodo:   {m["data_min"]} → {m["data_max"]}')
                 print(f'  Facebook:  {fb_k["views"]:,} views · {fb_k["interactions"]} int · ER {fb_k["er"]}%')
                 print(f'  Instagram: {ig_k["reach"]:,} reach · {ig_k["interactions"]} int · ER {ig_k["er"]}%')
+                if 'linkedin' in opt_data:
+                    li_k = opt_data['linkedin']['kpi']
+                    print(f'  LinkedIn:  {li_k.get("impressioni", 0):,} impressioni · {li_k.get("clicks", 0)} clicks · ER {li_k.get("er_organic", 0)}%')
                 if update_optimedia_dashboard(opt_data):
                     print('  OPTIMEDIA_DATA ✓')
                 else:
