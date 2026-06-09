@@ -110,7 +110,7 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .platform-kpi { padding:12px 14px 14px; border-right:1px solid var(--border-lt); border-bottom:1px solid var(--border-lt); background:var(--card); }
 .platform-kpi:nth-child(3n) { border-right:none; }
 .platform-kpi:nth-last-child(-n+3) { border-bottom:none; }
-.platform-kpi .lbl { color:var(--text-3); font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+.platform-kpi .lbl { color:var(--text-3); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
 .platform-kpi .val { font-size:20px; font-weight:800; margin-top:4px; letter-spacing:-.4px; font-variant-numeric:tabular-nums; }
 .platform-kpi .val.fb-color { color:var(--fb); }
 .platform-kpi .val.ig-color { color:var(--ig); }
@@ -143,9 +143,14 @@ canvas.trend-canvas { display:block; width:100%; }
 /* Age/gender bars */
 .age-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
 .age-lbl { font-size:11px; color:var(--text-3); width:38px; flex-shrink:0; text-align:right; }
-.age-bar-m { height:13px; border-radius:2px; background:var(--fb); min-width:2px; }
-.age-bar-f { height:13px; border-radius:2px; background:var(--ig); min-width:2px; }
+.age-bars { flex:1; min-width:0; }
+.age-bar-m { height:12px; border-radius:2px; background:var(--fb); min-width:2px; max-width:100%; }
+.age-bar-f { height:12px; border-radius:2px; background:var(--ig); min-width:2px; max-width:100%; margin-top:3px; }
 .age-val { font-size:10.5px; color:var(--text-3); min-width:34px; }
+
+/* Section divider */
+.section-divider { display:flex; align-items:center; gap:10px; margin:24px 0 16px; color:var(--text-3); font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; }
+.section-divider::before, .section-divider::after { content:''; flex:1; height:1px; background:var(--border); }
 
 /* Spike callout */
 .spike-callout { background:linear-gradient(135deg,#fff8e7,#fef0fb); border:1.5px solid #f5c200; border-radius:10px; padding:16px 20px; margin-bottom:20px; display:flex; gap:14px; align-items:flex-start; }
@@ -277,6 +282,7 @@ fetch('/api/auth/verify')
     </div>
 
     <!-- Platform KPIs (2 columns) -->
+    <div class="section-divider"><span>Dettaglio per piattaforma</span></div>
     <div class="platform-grid">
       <!-- Facebook -->
       <div class="platform-col">
@@ -302,17 +308,19 @@ fetch('/api/auth/verify')
   <div class="tab-content" id="tab-settimanale">
     <div class="card">
       <h3>Riepilogo settimanale <span class="hint">raggruppato per settimana ISO &middot; &Delta; vs settimana precedente</span></h3>
-      <table class="tbl">
-        <thead><tr>
-          <th>Settimana</th>
-          <th class="num" style="color:var(--fb)">FB Views</th>
-          <th class="num" style="color:var(--ig)">IG Reach</th>
-          <th class="num">Interazioni tot.</th>
-          <th class="num">ER medio %</th>
-          <th class="num">&Delta; Interazioni</th>
-        </tr></thead>
-        <tbody id="weeklyBody"></tbody>
-      </table>
+      <div style="overflow-x:auto;max-height:600px;overflow-y:auto">
+        <table class="tbl">
+          <thead style="position:sticky;top:0;background:var(--card);z-index:1"><tr>
+            <th>Settimana</th>
+            <th class="num" style="color:var(--fb)">FB Views</th>
+            <th class="num" style="color:var(--ig)">IG Reach</th>
+            <th class="num">Interazioni tot.</th>
+            <th class="num">ER medio %</th>
+            <th class="num">&Delta; Interazioni</th>
+          </tr></thead>
+          <tbody id="weeklyBody"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -367,6 +375,8 @@ fetch('/api/auth/verify')
     <!-- KPI row -->
     <div class="kpi-row-4" id="liKpiRow"></div>
 
+    <div class="section-divider"><span>Andamento</span></div>
+
     <!-- Trend chart -->
     <div class="card" style="margin-bottom:20px">
       <h3>Trend giornaliero <span class="hint">Impressioni &middot; Reactions &middot; Clicks</span></h3>
@@ -378,6 +388,8 @@ fetch('/api/auth/verify')
         <span><span style="display:inline-block;width:16px;border-top:2px dashed var(--li);vertical-align:middle"></span>&nbsp;Reactions + Clicks (scala sx)</span>
       </div>
     </div>
+
+    <div class="section-divider"><span>Top Post</span></div>
 
     <!-- Top posts -->
     <div class="card" style="margin-bottom:20px">
@@ -394,6 +406,8 @@ fetch('/api/auth/verify')
         <tbody id="liTopPosts"></tbody>
       </table>
     </div>
+
+    <div class="section-divider"><span>Crescita Follower</span></div>
 
     <!-- Follower growth -->
     <div class="card" style="margin-bottom:20px">
@@ -412,6 +426,8 @@ fetch('/api/auth/verify')
         <canvas id="liFollowerChart" style="height:180px;width:100%"></canvas>
       </div>
     </div>
+
+    <div class="section-divider"><span>Audience · Analisi follower</span></div>
 
     <!-- Demographics 2x2 grid -->
     <div class="row-2">
@@ -1016,10 +1032,12 @@ function renderAudience(r){
   const mxFB=Math.max(...fbAG.flatMap(f=>[f.uomini,f.donne]),1);
   document.getElementById('fbAgeGender').innerHTML = fbAG.map(f=>
     '<div class="age-row"><div class="age-lbl">'+f.fascia+'</div>'
-    +'<div><div class="age-bar-m" style="width:'+Math.round(f.uomini/mxFB*180)+'px"></div>'
-    +'<div style="font-size:10.5px;color:var(--fb);margin-top:1px">'+nfDec.format(f.uomini)+'%</div>'
-    +'<div class="age-bar-f" style="width:'+Math.round(f.donne/mxFB*180)+'px;margin-top:3px"></div>'
-    +'<div style="font-size:10.5px;color:var(--ig);margin-top:1px">'+nfDec.format(f.donne)+'%</div></div></div>'
+    +'<div class="age-bars">'
+    +'<div class="age-bar-m" style="width:'+Math.round(f.uomini/mxFB*100)+'%"></div>'
+    +'<div style="font-size:10.5px;color:var(--fb);margin-top:1px">'+nfDec.format(f.uomini)+'% uomini</div>'
+    +'<div class="age-bar-f" style="width:'+Math.round(f.donne/mxFB*100)+'%"></div>'
+    +'<div style="font-size:10.5px;color:var(--ig);margin-top:1px">'+nfDec.format(f.donne)+'% donne</div>'
+    +'</div></div>'
   ).join('');
 
   // Age/Gender IG
@@ -1027,10 +1045,12 @@ function renderAudience(r){
   const mxIG=Math.max(...igAG.flatMap(f=>[f.uomini,f.donne]),1);
   document.getElementById('igAgeGender').innerHTML = igAG.map(f=>
     '<div class="age-row"><div class="age-lbl">'+f.fascia+'</div>'
-    +'<div><div class="age-bar-m" style="width:'+Math.round(f.uomini/mxIG*180)+'px"></div>'
-    +'<div style="font-size:10.5px;color:var(--fb);margin-top:1px">'+nfDec.format(f.uomini)+'%</div>'
-    +'<div class="age-bar-f" style="width:'+Math.round(f.donne/mxIG*180)+'px;margin-top:3px"></div>'
-    +'<div style="font-size:10.5px;color:var(--ig);margin-top:1px">'+nfDec.format(f.donne)+'%</div></div></div>'
+    +'<div class="age-bars">'
+    +'<div class="age-bar-m" style="width:'+Math.round(f.uomini/mxIG*100)+'%"></div>'
+    +'<div style="font-size:10.5px;color:var(--fb);margin-top:1px">'+nfDec.format(f.uomini)+'% uomini</div>'
+    +'<div class="age-bar-f" style="width:'+Math.round(f.donne/mxIG*100)+'%"></div>'
+    +'<div style="font-size:10.5px;color:var(--ig);margin-top:1px">'+nfDec.format(f.donne)+'% donne</div>'
+    +'</div></div>'
   ).join('');
 
   // IG new followers in period
