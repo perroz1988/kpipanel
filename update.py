@@ -36,6 +36,7 @@ Richiede: pip3 install xlrd
 
 import xlrd
 import json
+import csv
 import re
 import os
 import sys
@@ -71,6 +72,7 @@ INBOX_OPT_LI     = os.path.join(BASE, 'inbox', 'optimedia', 'LinkedIn')
 ARCHIVE_OPT_FB   = os.path.join(BASE, 'archive', 'optimedia', 'facebook')
 ARCHIVE_OPT_IG   = os.path.join(BASE, 'archive', 'optimedia', 'instagram')
 ARCHIVE_OPT_LI   = os.path.join(BASE, 'archive', 'optimedia', 'linkedin')
+ARCHIVE_OPT_ADS  = os.path.join(BASE, 'archive', 'optimedia', 'ads')
 ARCHIVE_OPT      = os.path.join(BASE, 'archive', 'optimedia')
 DASHBOARD_OPT    = os.path.join(BASE, 'optimedia.html')
 
@@ -509,6 +511,51 @@ def parse_meta_audience_ig(path):
             except: pass
     return result
 
+def parse_meta_ads_csv(fpath):
+    """Parsa CSV Meta Ads Manager (giorno per campagna ITA+FR), aggrega per data."""
+    def _parse_num(s, as_float=False):
+        s = (s or '').strip().replace(' ', '')
+        if not s: return 0.0 if as_float else 0
+        # Both '.' and ',' → Italian thousands+decimal: 1.234,56
+        if '.' in s and ',' in s:
+            s = s.replace('.', '').replace(',', '.')
+        # Only ',' → Italian decimal: 22,57
+        elif ',' in s:
+            s = s.replace(',', '.')
+        # Only '.' or neither → standard decimal: 22.57 or integer 1234
+        try:
+            return round(float(s), 2) if as_float else int(float(s))
+        except:
+            return 0.0 if as_float else 0
+
+    by_date = {}
+    with open(fpath, 'r', encoding='utf-8-sig') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            date_raw = (row.get('Giorno') or '').strip()
+            if not date_raw or date_raw.lower().startswith('totale'):
+                continue
+            def iv(col, r=row): return _parse_num(r.get(col), as_float=False)
+            def fv(col, r=row): return _parse_num(r.get(col), as_float=True)
+            if date_raw not in by_date:
+                by_date[date_raw] = {'data': date_raw, 'reach': 0, 'impressions': 0,
+                                     'interactions': 0, 'followers': 0, 'reactions': 0,
+                                     'saves': 0, 'shares': 0, 'thruplay': 0,
+                                     'spend': 0.0, 'link_clicks': 0}
+            d = by_date[date_raw]
+            d['reach']        += iv('Copertura')
+            d['impressions']  += iv('Impression')
+            d['interactions'] += iv('Interazione con la Pagina')
+            d['followers']    += iv('Follower di Instagram')
+            d['reactions']    += iv('Reazioni al post')
+            d['saves']        += iv('Salvataggi del post')
+            d['shares']       += iv('Condivisioni del post')
+            d['thruplay']     += iv('ThruPlay')
+            d['spend']        += fv('Importo speso (EUR)')
+            d['link_clicks']  += iv('Clic sul link')
+    return sorted(by_date.values(), key=lambda x: x['data'])
+
+
 def parse_linkedin_xls(xls_files):
     """Parsa file XLS LinkedIn (Metrics, Follower Analytics, All Posts)."""
     metrics = {}
@@ -525,19 +572,25 @@ def parse_linkedin_xls(xls_files):
             if 'linkedin' in fname_lower and 'follower' not in fname_lower and 'visite' not in fname_lower:
                 try:
                     ws = wb.sheet_by_name('Metrics')
-                    for row_idx in range(1, min(ws.nrows, 200)):  # Daily metrics
+                    for row_idx in range(2, min(ws.nrows, 200)):  # Daily metrics (start from row 2, skip header)
                         try:
-                            date_val = str(int(ws.cell(row_idx, 0).value))
-                            if len(date_val) == 8:
-                                date_str = f"{date_val[:4]}-{date_val[4:6]}-{date_val[6:8]}"
-                            else:
-                                date_str = ws.cell(row_idx, 0).value
-                            impressions = int(ws.cell(row_idx, 2).value or 0)
-                            unique_impr = int(ws.cell(row_idx, 3).value or 0)
-                            clicks = int(ws.cell(row_idx, 6).value or 0)
-                            reactions = int(ws.cell(row_idx, 9).value or 0)
-                            comments = int(ws.cell(row_idx, 11).value or 0)
-                            reposts = int(ws.cell(row_idx, 14).value or 0)
+                            date_val = ws.cell(row_idx, 0).value
+                            date_str = str(date_val).strip() if date_val else None
+                            if not date_str or date_str.lower() == 'date':
+                                continue
+                            # Parse date: MM/DD/YYYY or similar
+                            if '/' in str(date_str):
+                                parts = str(date_str).split('/')
+                                if len(parts) == 3:
+                                    date_str = f"2026-{parts[0]}-{parts[1]}"  # Convert MM/DD to YYYY-MM-DD
+
+                            impressions = int(float(ws.cell(row_idx, 3).value or 0))  # Col 3: Impressions (total)
+                            unique_impr = int(float(ws.cell(row_idx, 4).value or 0))  # Col 4: Unique impressions
+                            clicks = int(float(ws.cell(row_idx, 7).value or 0))       # Col 7: Clicks (total)
+                            reactions = int(float(ws.cell(row_idx, 10).value or 0))   # Col 10: Reactions (total)
+                            comments = int(float(ws.cell(row_idx, 13).value or 0))    # Col 13: Comments (total)
+                            reposts = int(float(ws.cell(row_idx, 16).value or 0))     # Col 16: Reposts (total)
+
                             if impressions:
                                 er = round((reactions + clicks + comments + reposts) / unique_impr * 100 if unique_impr else 0, 2)
                                 metrics[date_str] = {
@@ -548,7 +601,7 @@ def parse_linkedin_xls(xls_files):
                     # All Posts sheet
                     try:
                         ws_posts = wb.sheet_by_name('All posts')
-                        for row_idx in range(1, min(ws_posts.nrows, 100)):
+                        for row_idx in range(2, min(ws_posts.nrows, 100)):
                             try:
                                 title = str(ws_posts.cell(row_idx, 0).value)[:100]
                                 impr = int(ws_posts.cell(row_idx, 9).value or 0)
@@ -570,14 +623,19 @@ def parse_linkedin_xls(xls_files):
                         ws_fol = wb.sheet_by_name('New followers')
                         for row_idx in range(1, min(ws_fol.nrows, 200)):
                             try:
-                                date_val = str(int(ws_fol.cell(row_idx, 0).value))
-                                if len(date_val) == 8:
-                                    date_str = f"{date_val[:4]}-{date_val[4:6]}-{date_val[6:8]}"
+                                date_raw = str(ws_fol.cell(row_idx, 0).value).strip()
+                                if not date_raw or date_raw.lower() == 'date':
+                                    continue
+                                if '/' in date_raw:
+                                    parts = date_raw.split('/')
+                                    if len(parts) == 3:
+                                        date_str = f"{parts[2]}-{parts[0].zfill(2)}-{parts[1].zfill(2)}"
+                                    else:
+                                        date_str = date_raw
                                 else:
-                                    date_str = ws_fol.cell(row_idx, 0).value
-                                total_fol = int(ws_fol.cell(row_idx, 4).value or 0)  # Total followers column
-                                if total_fol:
-                                    follower_daily[date_str] = total_fol
+                                    date_str = date_raw
+                                total_fol = int(float(ws_fol.cell(row_idx, 4).value or 0))
+                                follower_daily[date_str] = total_fol
                             except: pass
                     except: pass
 
@@ -600,18 +658,20 @@ def parse_linkedin_xls(xls_files):
         except Exception as e:
             print(f'    WARN parsando {os.path.basename(fpath)}: {e}')
 
-    return sorted(metrics.values(), key=lambda x: x['data']), posts[:5], followers, sorted([{'data': d, 'total': c} for d, c in follower_daily.items()])
+    return sorted(metrics.values(), key=lambda x: x['data']), posts[:5], followers, sorted([{'data': d, 'total': c} for d, c in follower_daily.items()], key=lambda x: x['data'])
 
 
 def build_optimedia_data(fb_archive_dir, ig_archive_dir, li_archive_dir=None):
     """Legge tutti i CSV archiviati e costruisce OPTIMEDIA_DATA."""
     def load_series(folder, pattern):
+        # Files sorted by date prefix — later files overwrite earlier for the same date
+        # This prevents double-counting when Monday re-uploads overlap with existing archive
         files = sorted(glob.glob(os.path.join(folder, f'*_{pattern}.csv')))
         by_date = {}
         for f in files:
             for row in parse_meta_csv_series(f):
                 d = row['data']
-                by_date[d] = by_date.get(d, 0) + row['val']
+                by_date[d] = row['val']
         return [{'data': k, 'val': v} for k, v in sorted(by_date.items())]
 
     def merge_daily(series_dict):
@@ -677,20 +737,70 @@ def build_optimedia_data(fb_archive_dir, ig_archive_dir, li_archive_dir=None):
     # LinkedIn KPI aggregates
     li_kpi = {}
     if li_metrics:
+        li_uimp = max(sum(m.get('unique_impressions', 0) for m in li_metrics), 1)
         li_kpi = {
-            'impressioni': sum(m.get('impressions', 0) for m in li_metrics),
-            'unique_impressions': sum(m.get('unique_impressions', 0) for m in li_metrics),
-            'reactions': sum(m.get('reactions', 0) for m in li_metrics),
-            'comments': sum(m.get('comments', 0) for m in li_metrics),
-            'reposts': sum(m.get('reposts', 0) for m in li_metrics),
-            'clicks': sum(m.get('clicks', 0) for m in li_metrics),
-            'followers_new': sum(f.get('count', 0) for f in li_followers.get('locations', []) if 'new' in str(f).lower()),
-            'er_organic': round(sum(m.get('clicks', 0) + m.get('reactions', 0) for m in li_metrics) / sum(m.get('unique_impressions', 1) for m in li_metrics) * 100, 2) if li_metrics else 0,
+            'impressioni':       sum(m.get('impressions', 0) for m in li_metrics),
+            'unique_impressions': li_uimp,
+            'reactions':         sum(m.get('reactions', 0) for m in li_metrics),
+            'comments':          sum(m.get('comments', 0) for m in li_metrics),
+            'reposts':           sum(m.get('reposts', 0) for m in li_metrics),
+            'clicks':            sum(m.get('clicks', 0) for m in li_metrics),
+            'followers_new':     sum(f.get('total', 0) for f in li_follower_daily),
+            'er_full':           round(sum(m.get('clicks',0)+m.get('reactions',0)+m.get('comments',0)+m.get('reposts',0) for m in li_metrics) / li_uimp * 100, 2),
+            'er_reactions':      round(sum(m.get('reactions', 0) for m in li_metrics) / li_uimp * 100, 2),
         }
+
+    # Load Meta Ads daily data (last file per date wins)
+    ads_daily = []
+    ads_files = sorted(glob.glob(os.path.join(ARCHIVE_OPT_ADS, '*.csv')))
+    if ads_files:
+        ads_by_date = {}
+        for af in ads_files:
+            for row in parse_meta_ads_csv(af):
+                ads_by_date[row['data']] = row  # last file wins for each date
+        ads_daily = sorted(ads_by_date.values(), key=lambda x: x['data'])
+
+    # CAGM monthly target lookup tables (T0 = clean organic baseline, n=1..12)
+    def _ct(t0, rate, n=12): return [round(t0 * (1+rate)**k) for k in range(1, n+1)]
+    def _lt(t0, step, n=12): return [round(t0 + step*k, 2) for k in range(1, n+1)]
+    def _ft(val, n=12): return [val] * n
+
+    cagm_monthly = {
+        'strategy_start': '2026-02-01',
+        'instagram': {
+            'followers_new':        _ct(15,   0.150),
+            'reach_organica':       _ct(2700, 0.056),
+            'interactions_organic': _ct(285,  0.078),
+            'er_organic':           _lt(10.5, 0.25),
+            'comments':             _ct(14,   0.079),
+            'saves':                _ct(34,   0.059),
+        },
+        'linkedin': {
+            'strategy_start': '2026-03-01',
+            'impressioni':        _ct(2854, 0.029),
+            'unique_impressions': _ct(1421, 0.026),
+            'reactions':          _ct(109,  0.047),
+            'clicks':             _ct(866,  0.027),
+            'er_full':            _ft(35.0),
+            'er_reactions':       _ft(9.2),
+        },
+        'facebook': {
+            'interactions': _ct(46,  0.224),
+            'visits':       _ct(856, 0.031),
+            'followers':    _ct(10,  0.026),
+            'er':           _ft(9.4),
+        }
+    }
 
     result = {
         'meta': {'cliente': 'Optimedia', 'data_min': data_min, 'data_max': data_max,
-                 'aggiornato': datetime.now().strftime('%Y-%m-%d')},
+                 'aggiornato': datetime.now().strftime('%Y-%m-%d'),
+                 'cagm_monthly': cagm_monthly,
+                 'kpi_targets': {
+                     'instagram': {'followers_new': 80, 'followers_total': 1035, 'reach_organica': 5200, 'interactions_organic': 700, 'er_organic': 13.5, 'comments': 35, 'saves': 68},
+                     'linkedin':  {'impressioni': 3700, 'unique_impressions': 1800, 'reactions': 165, 'comments': 3, 'reposts': 3, 'clicks': 1110, 'er_full': 71.2, 'er_reactions': 9.2},
+                     'facebook':  {'interactions': 515, 'visits': 1238, 'followers': 14, 'er': 9.4}
+                 }},
         'facebook': {
             'kpi': {**fb_t, 'er': fb_er},
             'metriche': fb_daily,
@@ -712,6 +822,9 @@ def build_optimedia_data(fb_archive_dir, ig_archive_dir, li_archive_dir=None):
             'followers': li_followers,
             'follower_daily': li_follower_daily,
         }
+
+    if ads_daily:
+        result['ads'] = {'metriche': ads_daily}
 
     return result
 
@@ -776,6 +889,18 @@ def process_inbox_optimedia():
                 shutil.copy2(src, dst)
                 os.remove(src)
                 print(f'  LinkedIn/{fname} → {os.path.basename(dst)}')
+                found = True
+
+    # Meta Ads CSV files (any CSV in Instagram inbox not in ig_map)
+    os.makedirs(ARCHIVE_OPT_ADS, exist_ok=True)
+    if os.path.exists(INBOX_OPT_IG):
+        for fname in sorted(os.listdir(INBOX_OPT_IG)):
+            if fname.endswith('.csv') and fname not in ig_map:
+                src = os.path.join(INBOX_OPT_IG, fname)
+                dst = os.path.join(ARCHIVE_OPT_ADS, f'{today}_{fname}')
+                shutil.copy2(src, dst)
+                os.remove(src)
+                print(f'  Instagram Ads/{fname} → {os.path.basename(dst)}')
                 found = True
 
     return found
@@ -1611,7 +1736,7 @@ def process_inbox():
 
 def main():
     for d in [ARCHIVE, ARCHIVE_KEYE, INBOX_RS, INBOX_OPT_FB, INBOX_OPT_IG,
-              ARCHIVE_OPT_FB, ARCHIVE_OPT_IG]:
+              ARCHIVE_OPT_FB, ARCHIVE_OPT_IG, ARCHIVE_OPT_ADS]:
         os.makedirs(d, exist_ok=True)
 
     args         = sys.argv[1:]
@@ -1769,7 +1894,7 @@ def main():
                 print(f'  Instagram: {ig_k["reach"]:,} reach · {ig_k["interactions"]} int · ER {ig_k["er"]}%')
                 if 'linkedin' in opt_data:
                     li_k = opt_data['linkedin']['kpi']
-                    print(f'  LinkedIn:  {li_k.get("impressioni", 0):,} impressioni · {li_k.get("clicks", 0)} clicks · ER {li_k.get("er_organic", 0)}%')
+                    print(f'  LinkedIn:  {li_k.get("impressioni", 0):,} impressioni · {li_k.get("clicks", 0)} clicks · ER full {li_k.get("er_full", 0)}% · ER react {li_k.get("er_reactions", 0)}%')
                 if update_optimedia_dashboard(opt_data):
                     print('  OPTIMEDIA_DATA ✓')
                 else:
