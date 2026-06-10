@@ -254,13 +254,14 @@ fetch('/api/auth/verify')
     <div class="spike-callout" id="spikeCallout" style="display:none">
       <div class="spike-icon">&#9889;</div>
       <div class="spike-body">
-        <h4>Spike 18–22 mag &mdash; Contenuto organico virale</h4>
+        <h4>Spike 18–23 mag &mdash; Campagna Paid &ldquo;Target Building&rdquo; (W21)</h4>
         <p>
-          <strong>Facebook:</strong> +114k views &nbsp;&middot;&nbsp;
-          <strong>Instagram:</strong> +84k reach &nbsp;&middot;&nbsp;
-          <strong>Interazioni totali picco:</strong> +420
+          <strong>IG Reach paid:</strong> ~84k &nbsp;&middot;&nbsp;
+          <strong>FB Views:</strong> +114k &nbsp;&middot;&nbsp;
+          <strong>Interazioni paid:</strong> ~45k &nbsp;&middot;&nbsp;
+          <strong>Spesa:</strong> ~261 EUR
         </p>
-        <div class="spike-note">Probabilmente un post organico virale. Consulta Meta Business Suite per identificare il contenuto specifico che ha generato lo spike.</div>
+        <div class="spike-note">Reach e Interazioni di W21 includono il contributo paid. Per i KPI organici escludi W21. Campagna ripresa dal 5 giu (W23 &mdash; dati misti organico+paid).</div>
       </div>
     </div>
 
@@ -277,7 +278,7 @@ fetch('/api/auth/verify')
         <span><span class="legend-dot" style="background:var(--fb)"></span>&nbsp;FB Views (scala dx)</span>
         <span><span class="legend-dot" style="background:var(--ig)"></span>&nbsp;IG Reach (scala dx)</span>
         <span><span style="display:inline-block;width:16px;border-top:2px dashed var(--meta);vertical-align:middle"></span>&nbsp;Interazioni (scala sx)</span>
-        <span style="margin-left:auto;color:#8A6206">&#9889; = spike virale 18–22 mag</span>
+        <span style="margin-left:auto;color:#8A6206">&#9889; = paid W21 (18–23 mag) &middot; &#9889; = paid W23 (5+ giu)</span>
       </div>
     </div>
 
@@ -471,7 +472,7 @@ fetch('/api/auth/verify')
           </p>
         </div>
         <div style="text-align:right;font-size:13px">
-          <div style="color:var(--text-3);font-size:11px;text-transform:uppercase;margin-bottom:4px">Ciclo Progresso</div>
+          <div style="color:var(--text-3);font-size:11px;text-transform:uppercase;margin-bottom:4px" id="kpiProgressLabel">Avanzamento</div>
           <div style="font-size:24px;font-weight:800;color:var(--meta)" id="kpiProgress">—</div>
         </div>
       </div>
@@ -591,7 +592,28 @@ function getPrevRange(r){
 function fbIn(r){ return OPTIMEDIA_DATA.facebook.metriche.filter(m=>inRange(m.data,r)); }
 function igIn(r){ return OPTIMEDIA_DATA.instagram.metriche.filter(m=>inRange(m.data,r)); }
 function liIn(r){ return (OPTIMEDIA_DATA.linkedin && OPTIMEDIA_DATA.linkedin.metriche || []).filter(m=>inRange(m.data,r)); }
+function adsIn(r){ return (OPTIMEDIA_DATA.ads && OPTIMEDIA_DATA.ads.metriche || []).filter(m=>inRange(m.data,r)); }
 function sumRows(rows, col){ return rows.reduce((s,r)=>s+(r[col]||0), 0); }
+
+// C3 — CAGM-based monthly target lookup
+function getMonthlyTarget(platform, metric) {
+  const cagm = OPTIMEDIA_DATA.meta.cagm_monthly;
+  const pdata = cagm[platform];
+  if (!pdata || !pdata[metric]) {
+    const t = OPTIMEDIA_DATA.meta.kpi_targets[platform];
+    return t ? (t[metric] || 0) : 0;
+  }
+  const startStr = pdata.strategy_start || cagm.strategy_start;
+  const stratStart = new Date(startStr);
+  const r = getRange();
+  const periodEnd = new Date(r.to);
+  const n = Math.max(1,
+    (periodEnd.getFullYear() - stratStart.getFullYear()) * 12 +
+    (periodEnd.getMonth() - stratStart.getMonth())
+  );
+  const arr = pdata[metric];
+  return arr[Math.min(n - 1, arr.length - 1)];
+}
 
 function prevLabel(){
   const map = { settimanale:'vs sett. prec.', mensile:'vs mese prec.', custom:'vs periodo prec.' };
@@ -963,12 +985,19 @@ function renderSettimanale(){
     return '<span class="'+cls+'">'+arr+' '+sign+nfInt.format(Math.abs(diff))+(prev>0?' ('+sign+nfDec.format(pct)+'%)':'')+'</span>';
   }
 
+  // C2: flag settimane paid
+  function paidFlag(wk){
+    if(wk==='2026-W21') return ' <span style="color:#c97200;font-size:11px" title="Campagna paid Target Building">⚡ paid</span>';
+    if(wk==='2026-W23') return ' <span style="color:#c97200;font-size:11px" title="Campagna paid ripartita 5 giu">🌱+⚡ misto</span>';
+    return '';
+  }
+
   document.getElementById('weeklyBody').innerHTML = sorted.map((w,i)=>{
     const prev=i>0?sorted[i-1]:null;
     const totalR=w.fbViewers+w.igR;
     const er=totalR>0?(w.ints/totalR)*100:0;
     return '<tr>'
-      +'<td><b>'+weekLabel(w.wk)+'</b> <span style="color:var(--text-3);font-size:11px">'+w.wk+'</span></td>'
+      +'<td><b>'+weekLabel(w.wk)+'</b> <span style="color:var(--text-3);font-size:11px">'+w.wk+'</span>'+paidFlag(w.wk)+'</td>'
       +'<td class="num" style="color:var(--fb)">'+fmt(w.fbViews)+'</td>'
       +'<td class="num" style="color:var(--ig)">'+fmt(w.igReach)+'</td>'
       +'<td class="num">'+fmt(w.ints)+'</td>'
@@ -1255,11 +1284,14 @@ function getPeriodFactor(){
   return days / 30;
 }
 
-// Calcola target proporzionale al periodo; le rate (ER%) non vengono scalate
-function scaledTarget(monthlyTarget, isRate){ return isRate ? monthlyTarget : monthlyTarget * getPeriodFactor(); }
+// C3: target CAGM-aggiustato per il periodo corrente, scalato per period_factor se count
+function scaledTarget(platform, metric, isRate){
+  const t = getMonthlyTarget(platform, metric);
+  return isRate ? t : t * getPeriodFactor();
+}
 
 function renderKPICard(label, actual, monthlyTarget, {unit='', isRate=false, monthlyLabel=''} = {}){
-  const target = scaledTarget(monthlyTarget, isRate);
+  const target = isRate ? monthlyTarget : monthlyTarget * getPeriodFactor();
   const pct    = target > 0 ? Math.min((actual / target) * 100, 999) : 0;
   const status = pct >= 100 ? '✅' : pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
   const barCls  = pct >= 100 ? 'var(--pos)' : pct >= 80 ? 'var(--pos)' : pct >= 50 ? '#F59E0B' : 'var(--neg)';
@@ -1294,68 +1326,84 @@ function renderKPICard(label, actual, monthlyTarget, {unit='', isRate=false, mon
 }
 
 function renderInstagramKPI(){
-  const targets = OPTIMEDIA_DATA.meta.kpi_targets.instagram;
   const r = getRange();
   const rows = igIn(r);
-  const reach   = sumRows(rows, 'reach');
-  const ints    = sumRows(rows, 'interactions');
-  const follows = sumRows(rows, 'follows');
+  const reach    = sumRows(rows, 'reach');
+  const ints     = sumRows(rows, 'interactions');
+  const follows  = sumRows(rows, 'follows');
   const comments = sumRows(rows, 'comments');
-  const saves   = sumRows(rows, 'saves');
-  const er      = reach > 0 ? ints/reach*100 : 0;
+  const saves    = sumRows(rows, 'saves');
+  const er       = reach > 0 ? ints/reach*100 : 0;
+  // Subtract paid reach/interactions for organic-only ER note
+  const adsRows  = adsIn(r);
+  const paidReach = sumRows(adsRows, 'reach');
+  const paidInts  = sumRows(adsRows, 'interactions');
+  const orgReach  = Math.max(0, reach - paidReach);
+  const orgInts   = Math.max(0, ints - paidInts);
+  const erOrg     = orgReach > 0 ? orgInts/orgReach*100 : er;
 
+  const T = (m) => getMonthlyTarget('instagram', m);
   const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    ${renderKPICard('Reach Organica', reach, targets.reach_organica, {monthlyLabel:true})}
-    ${renderKPICard('Interazioni Organiche', ints, targets.interactions_organic, {monthlyLabel:true})}
-    ${renderKPICard('Nuovi Follower', follows, targets.followers_new, {monthlyLabel:true})}
-    ${renderKPICard('ER Organica', er, targets.er_organic, {unit:'%', isRate:true})}
-    ${renderKPICard('Commenti', comments, targets.comments, {monthlyLabel:true})}
-    ${renderKPICard('Save', saves, targets.saves, {monthlyLabel:true})}
-  </div>`;
+    ${renderKPICard('Reach Organica', orgReach, T('reach_organica'), {monthlyLabel:true})}
+    ${renderKPICard('Interazioni Organiche', orgInts, T('interactions_organic'), {monthlyLabel:true})}
+    ${renderKPICard('Nuovi Follower', follows, T('followers_new'), {monthlyLabel:true})}
+    ${renderKPICard('ER Organica', erOrg, T('er_organic'), {unit:'%', isRate:true})}
+    ${renderKPICard('Commenti', comments, T('comments'), {monthlyLabel:true})}
+    ${renderKPICard('Save', saves, T('saves'), {monthlyLabel:true})}
+  </div>${paidReach > 0 ? '<p style="font-size:11px;color:var(--text-3);margin-top:8px">⚡ Reach e interazioni organiche = totale &minus; paid (Ads Manager). Target: CAGM mensile progressivo.</p>' : ''}`;
   document.getElementById('kpiInstagram').innerHTML = html;
 }
 
 function renderLinkedInKPI(){
   if(!OPTIMEDIA_DATA.linkedin){ document.getElementById('kpiLinkedin').innerHTML='<p style="color:var(--text-3);font-size:13px">Nessun dato LinkedIn disponibile</p>'; return; }
-  const targets = OPTIMEDIA_DATA.meta.kpi_targets.linkedin;
   const r    = getRange();
   const rows = liIn(r);
-  const impressioni   = sumRows(rows, 'impressions');
-  const unique_impr   = sumRows(rows, 'unique_impressions');
-  const reactions     = sumRows(rows, 'reactions');
-  const clicks        = sumRows(rows, 'clicks');
-  const comments      = sumRows(rows, 'comments');
-  const reposts       = sumRows(rows, 'reposts');
-  const er            = unique_impr > 0 ? (reactions+clicks+comments+reposts)/unique_impr*100 : 0;
+  const impressioni  = sumRows(rows, 'impressions');
+  const unique_impr  = sumRows(rows, 'unique_impressions');
+  const reactions    = sumRows(rows, 'reactions');
+  const clicks       = sumRows(rows, 'clicks');
+  const comments     = sumRows(rows, 'comments');
+  const reposts      = sumRows(rows, 'reposts');
+  // S1: due metriche ER LinkedIn
+  const er_full      = unique_impr > 0 ? (reactions+clicks+comments+reposts)/unique_impr*100 : 0;
+  const er_reactions = unique_impr > 0 ? reactions/unique_impr*100 : 0;
 
+  const T = (m) => getMonthlyTarget('linkedin', m);
   const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    ${renderKPICard('Impressioni', impressioni, targets.impressioni, {monthlyLabel:true})}
-    ${renderKPICard('Impression Uniche', unique_impr, targets.unique_impressions, {monthlyLabel:true})}
-    ${renderKPICard('Reactions', reactions, targets.reactions, {monthlyLabel:true})}
-    ${renderKPICard('Clicks', clicks, targets.clicks, {monthlyLabel:true})}
-    ${renderKPICard('Commenti', comments, targets.comments, {monthlyLabel:true})}
-    ${renderKPICard('Condivisioni', reposts, targets.reposts, {monthlyLabel:true})}
-    ${renderKPICard('ER (def. LinkedIn)', er, targets.er, {unit:'%', isRate:true})}
-  </div>`;
+    ${renderKPICard('Impressioni', impressioni, T('impressioni'), {monthlyLabel:true})}
+    ${renderKPICard('Impression Uniche', unique_impr, T('unique_impressions'), {monthlyLabel:true})}
+    ${renderKPICard('Reactions', reactions, T('reactions'), {monthlyLabel:true})}
+    ${renderKPICard('Clicks', clicks, T('clicks'), {monthlyLabel:true})}
+    ${renderKPICard('Commenti', comments, T('comments') || 3, {monthlyLabel:true})}
+    ${renderKPICard('Condivisioni', reposts, T('reposts') || 3, {monthlyLabel:true})}
+    ${renderKPICard('ER Full (LinkedIn)', er_full, T('er_full'), {unit:'%', isRate:true})}
+    ${renderKPICard('ER Reactions (organico)', er_reactions, T('er_reactions'), {unit:'%', isRate:true})}
+  </div><p style="font-size:11px;color:var(--text-3);margin-top:8px">ER Full = (react+click+commenti+condivisioni)/imp.uniche &middot; ER Reactions = reactions/imp.uniche</p>`;
   document.getElementById('kpiLinkedin').innerHTML = html;
 }
 
 function renderFacebookKPI(){
-  const targets = OPTIMEDIA_DATA.meta.kpi_targets.facebook;
   const r    = getRange();
   const rows = fbIn(r);
-  const ints    = sumRows(rows, 'interactions');
-  const visits  = sumRows(rows, 'visits');
+  const ints   = sumRows(rows, 'interactions');
+  const visits = sumRows(rows, 'visits');
   const follows = sumRows(rows, 'follows');
-  const reach   = sumRows(rows, 'viewers');
-  const er      = reach > 0 ? ints/reach*100 : 0;
+  const reach  = sumRows(rows, 'viewers');
+  // S2: ER organica = escludi W21 (paid 18–23 mag)
+  const W21_START = '2026-05-18', W21_END = '2026-05-23';
+  const orgRows = rows.filter(m => !(m.data >= W21_START && m.data <= W21_END));
+  const orgInts  = sumRows(orgRows, 'interactions');
+  const orgReach = sumRows(orgRows, 'viewers');
+  const erOrg    = orgReach > 0 ? orgInts/orgReach*100 : 0;
+  const hasW21   = rows.some(m => m.data >= W21_START && m.data <= W21_END);
 
+  const T = (m) => getMonthlyTarget('facebook', m);
   const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-    ${renderKPICard('Interazioni', ints, targets.interactions, {monthlyLabel:true})}
-    ${renderKPICard('Visite Pagina', visits, targets.visits, {monthlyLabel:true})}
-    ${renderKPICard('Nuovi Follower', follows, targets.followers, {monthlyLabel:true})}
-    ${renderKPICard('ER', er, targets.er, {unit:'%', isRate:true})}
-  </div>`;
+    ${renderKPICard('Interazioni', ints, T('interactions'), {monthlyLabel:true})}
+    ${renderKPICard('Visite Pagina', visits, T('visits'), {monthlyLabel:true})}
+    ${renderKPICard('Nuovi Follower', follows, T('followers'), {monthlyLabel:true})}
+    ${renderKPICard('ER Organica', erOrg, T('er'), {unit:'%', isRate:true})}
+  </div>${hasW21 ? '<p style="font-size:11px;color:var(--text-3);margin-top:8px">⚡ ER calcolata escludendo W21 (18–23 mag, paid). Interazioni totali includono il contributo paid.</p>' : ''}`;
   document.getElementById('kpiFacebook').innerHTML = html;
 }
 
@@ -1364,16 +1412,21 @@ function renderKPITracker(){
   const days  = Math.max(1, Math.round((new Date(range.to) - new Date(range.from)) / (1000*60*60*24)) + 1);
   const months = days / 30;
 
-  // Mesi trascorsi dall'avvio strategia (feb 2026) a oggi per il ciclo progresso
-  const start = new Date('2026-02-12');
-  const now   = new Date();
-  const elapsed = Math.max(0, (now - start) / (1000*60*60*24*30));
+  // M4: mese corrente n/12 (feb 2026 = mese 0, mar = 1, ...)
+  const stratStart = new Date('2026-02-01');
+  const now = new Date();
+  const currentN = Math.min(12, Math.max(1,
+    (now.getFullYear() - stratStart.getFullYear()) * 12 + (now.getMonth() - stratStart.getMonth())
+  ));
+  const isQ = currentN % 3 === 0;
+  const qLabel = isQ ? ` — Q${Math.floor(currentN/3)} Review` : '';
 
   const periodMap = {'settimanale':'Settimanale (7 gg)','mensile':'Mensile (28 gg)','storico':'Storico (Feb 2026 – Oggi)','custom':'Personalizzato'};
   const periodLabel = periodMap[state.period] || 'Storico';
 
   document.getElementById('kpiPeriodLabel').textContent = `${periodLabel} · ${fmtDate(range.from)} → ${fmtDate(range.to)} · ×${nfDec.format(months)} mesi`;
-  document.getElementById('kpiProgress').textContent = `${Math.round(Math.min(elapsed/12,1)*100)}%`;
+  document.getElementById('kpiProgressLabel').textContent = `Mese ${currentN}/12${qLabel}`;
+  document.getElementById('kpiProgress').textContent = `${Math.round(currentN/12*100)}%`;
 
   renderInstagramKPI();
   renderLinkedInKPI();
