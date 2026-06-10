@@ -1155,12 +1155,23 @@ function drawLinkedInChart(fbRows, igRows){
 }
 
 function renderLinkedinKPI(){
-  const kpi = OPTIMEDIA_DATA.linkedin.kpi;
+  const r = getRange();
+  const rows = liIn(r);
+  const impressioni   = sumRows(rows, 'impressions');
+  const uimpr         = sumRows(rows, 'unique_impressions');
+  const reactions     = sumRows(rows, 'reactions');
+  const clicks        = sumRows(rows, 'clicks');
+  const comments      = sumRows(rows, 'comments');
+  const reposts       = sumRows(rows, 'reposts');
+  const er_full       = uimpr > 0 ? (reactions+clicks+comments+reposts)/uimpr*100 : 0;
+  const er_reactions  = uimpr > 0 ? reactions/uimpr*100 : 0;
   const cards = [
-    {lbl:'Impressioni', val:fmt(kpi.impressioni)},
-    {lbl:'Unique Impressions', val:fmt(kpi.unique_impressions)},
-    {lbl:'Reactions', val:fmt(kpi.reactions)},
-    {lbl:'Clicks', val:fmt(kpi.clicks)},
+    {lbl:'Impressioni', val:fmt(impressioni)},
+    {lbl:'Unique Impressions', val:fmt(uimpr)},
+    {lbl:'Reactions', val:fmt(reactions)},
+    {lbl:'Clicks', val:fmt(clicks)},
+    {lbl:'ER Full', val:fmtPct(er_full)},
+    {lbl:'ER Reactions', val:fmtPct(er_reactions)},
   ];
   document.getElementById('liKpiRow').innerHTML = cards.map(kpiCardHTML).join('');
 }
@@ -1191,8 +1202,11 @@ function drawLinkedInFollowerChart(){
   const ctx = canvas.getContext('2d');
   ctx.scale(devicePixelRatio, devicePixelRatio);
 
-  const total = daily.reduce((s,d)=>s+d.total, 0);
-  const avg   = total / daily.length;
+  const r = getRange();
+  const periodDaily = daily.filter(d => inRange(d.data, r));
+  const countRows   = periodDaily.length || 1;
+  const total = periodDaily.reduce((s,d)=>s+d.total, 0);
+  const avg   = total / countRows;
   document.getElementById('liTotFollowers').textContent = '+'+total;
   document.getElementById('liAvgFollowers').textContent = nfDec.format(avg.toFixed(2));
 
