@@ -1348,13 +1348,18 @@ function renderInstagramKPI(){
   const comments = sumRows(rows, 'comments');
   const saves    = sumRows(rows, 'saves');
   const er       = reach > 0 ? ints/reach*100 : 0;
-  // Subtract paid reach/interactions for organic-only ER note
-  const adsRows  = adsIn(r);
-  const paidReach = sumRows(adsRows, 'reach');
-  const paidInts  = sumRows(adsRows, 'interactions');
-  const orgReach  = Math.max(0, reach - paidReach);
-  const orgInts   = Math.max(0, ints - paidInts);
-  const erOrg     = orgReach > 0 ? orgInts/orgReach*100 : er;
+  // Organic: exclude paid date ranges (W21 18–23 mag, W23 5+ giu)
+  // Note: Ads Manager CSV has combined ITA+FR reach — cannot subtract directly from IG-only data.
+  const W21_START = '2026-05-18', W21_END = '2026-05-23', W23_START = '2026-06-05';
+  const orgRows  = rows.filter(m =>
+    !(m.data >= W21_START && m.data <= W21_END) && !(m.data >= W23_START)
+  );
+  const orgReach = sumRows(orgRows, 'reach');
+  const orgInts  = sumRows(orgRows, 'interactions');
+  const erOrg    = orgReach > 0 ? orgInts/orgReach*100 : er;
+  const hasPaid  = rows.some(m =>
+    (m.data >= W21_START && m.data <= W21_END) || m.data >= W23_START
+  );
 
   const T = (m) => getMonthlyTarget('instagram', m);
   const html = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
@@ -1364,7 +1369,7 @@ function renderInstagramKPI(){
     ${renderKPICard('ER Organica', erOrg, T('er_organic'), {unit:'%', isRate:true})}
     ${renderKPICard('Commenti', comments, T('comments'), {monthlyLabel:true})}
     ${renderKPICard('Save', saves, T('saves'), {monthlyLabel:true})}
-  </div>${paidReach > 0 ? '<p style="font-size:11px;color:var(--text-3);margin-top:8px">⚡ Reach e interazioni organiche = totale &minus; paid (Ads Manager). Target: CAGM mensile progressivo.</p>' : ''}`;
+  </div>${hasPaid ? '<p style="font-size:11px;color:var(--text-3);margin-top:8px">⚡ Reach/interazioni organiche = storico senza W21 (18–23 mag) e W23 (5+ giu, paid). Target: CAGM mensile progressivo.</p>' : ''}`;
   document.getElementById('kpiInstagram').innerHTML = html;
 }
 
