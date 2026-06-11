@@ -106,6 +106,9 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .platform-title { font-size:14px; font-weight:700; }
 .platform-title.fb { color:var(--fb); }
 .platform-title.ig { color:var(--ig); }
+.platform-header.li { background:var(--li-lt); border-bottom:2px solid var(--li); }
+.platform-icon.li { background:var(--li); }
+.platform-title.li { color:var(--li); }
 .platform-kpi-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; }
 .platform-kpi { padding:12px 14px 14px; border-right:1px solid var(--border-lt); border-bottom:1px solid var(--border-lt); background:var(--card); }
 .platform-kpi:nth-child(3n) { border-right:none; }
@@ -303,6 +306,15 @@ fetch('/api/auth/verify')
       </div>
     </div>
 
+    <!-- LinkedIn platform KPIs -->
+    <div class="platform-col" style="margin-bottom:24px">
+      <div class="platform-header li">
+        <div class="platform-icon li" style="font-size:12px;font-weight:700;color:#fff">in</div>
+        <div class="platform-title li" style="margin-left:10px">LinkedIn</div>
+      </div>
+      <div class="platform-kpi-grid" id="liKpisOverview"></div>
+    </div>
+
   </div><!-- /tab-overview -->
 
   <!-- TAB: ANALISI SETTIMANALE -->
@@ -317,6 +329,8 @@ fetch('/api/auth/verify')
             <th class="num" style="color:var(--ig)">IG Reach</th>
             <th class="num">Interazioni tot.</th>
             <th class="num">ER medio %</th>
+            <th class="num" style="color:var(--li)">LI Impr.</th>
+            <th class="num" style="color:var(--li)">LI ER Full %</th>
             <th class="num">&Delta; Interazioni</th>
           </tr></thead>
           <tbody id="weeklyBody"></tbody>
@@ -400,12 +414,13 @@ fetch('/api/auth/verify')
       <h3>Top 5 Post <span class="hint">per engagement rate &middot; storico completo</span></h3>
       <table class="tbl">
         <thead><tr>
-          <th style="width:45%">Post</th>
+          <th style="width:40%">Post</th>
           <th class="num" style="color:var(--li)">Impressioni</th>
           <th class="num">Reactions</th>
           <th class="num">Clicks</th>
           <th class="num">CTR %</th>
-          <th class="num">ER %</th>
+          <th class="num">ER React %</th>
+          <th class="num">ER Full %</th>
         </tr></thead>
         <tbody id="liTopPosts"></tbody>
       </table>
@@ -507,7 +522,7 @@ fetch('/api/auth/verify')
       <p><b>Note metodologiche:</b></p>
       <ul style="margin:8px 0;padding-left:20px;line-height:1.6">
         <li>I target sono <b>valori mensili per Febbraio 2027</b> — riscalati automaticamente per il periodo selezionato</li>
-        <li>Storico = media mensile del periodo vs target mensile | Mensile = ultimi 28 gg vs target | Settimanale = ultimi 7 gg vs target/4.3</li>
+        <li>Mensile = 30 gg da oggi vs target mensile (×1) | Settimanale = 7 gg vs target/4.3 | Storico / Custom = proporzionale ai giorni</li>
         <li>Instagram ER = Interactions / Reach × 100 (organica)</li>
         <li>LinkedIn ER = (Reactions + Clicks + Comments + Reposts) / Unique Impressions × 100</li>
         <li>Status: 🔴 &lt;50% | 🟡 50–80% | 🟢 80–100% | ✅ &gt;100%</li>
@@ -830,8 +845,8 @@ function drawTrendChart(canvasId, fbRows, igRows, r){
    RENDER: PANORAMICA
    ============================================================ */
 function renderOverview(r, prev){
-  const fb = fbIn(r), ig = igIn(r);
-  const fbP= fbIn(prev), igP= igIn(prev);
+  const fb = fbIn(r), ig = igIn(r), li = liIn(r);
+  const fbP= fbIn(prev), igP= igIn(prev), liP= liIn(prev);
   const hasPrev = fbP.length>0 || igP.length>0;
 
   // Cross-platform KPIs
@@ -892,6 +907,7 @@ function renderOverview(r, prev){
   // Platform KPIs
   renderFbKpis(fb, fbP, hasPrev);
   renderIgKpis(ig, igP, hasPrev);
+  renderLiKpisOverview(li, liP, liP.length>0);
 }
 
 function platKpiHtml(lbl, valHtml, deltaHtml){
@@ -948,6 +964,25 @@ function renderIgKpis(rows, prevRows, hasPrev){
     platKpiHtml('ER %',            '<span class="ig-color">'+fmtPct(erVal)+'</span>',    erDelta(erVal,erPVal,hasPrev));
 }
 
+function renderLiKpisOverview(rows, prevRows, hasPrev){
+  const impr   = sumRows(rows,'impressions'),    imprP  = sumRows(prevRows,'impressions');
+  const uimpr  = sumRows(rows,'unique_impressions'), uimprP = sumRows(prevRows,'unique_impressions');
+  const react  = sumRows(rows,'reactions'),      reactP = sumRows(prevRows,'reactions');
+  const clicks = sumRows(rows,'clicks'),         clicksP= sumRows(prevRows,'clicks');
+  const erFull  = uimpr>0 ? (react+clicks)/uimpr*100 : 0;
+  const erFullP = uimprP>0 ? (reactP+clicksP)/uimprP*100 : null;
+  const erReact = uimpr>0 ? react/uimpr*100 : 0;
+  const erReactP= uimprP>0 ? reactP/uimprP*100 : null;
+  const liColor = 'style="color:var(--li)"';
+  document.getElementById('liKpisOverview').innerHTML =
+    platKpiHtml('Impressioni',    '<span '+liColor+'>'+fmt(impr)+'</span>',       smDelta(impr,imprP,hasPrev))+
+    platKpiHtml('Unique Impr.',   '<span '+liColor+'>'+fmt(uimpr)+'</span>',      smDelta(uimpr,uimprP,hasPrev))+
+    platKpiHtml('Reactions',      '<span '+liColor+'>'+fmt(react)+'</span>',      smDelta(react,reactP,hasPrev))+
+    platKpiHtml('Clicks',         '<span '+liColor+'>'+fmt(clicks)+'</span>',     smDelta(clicks,clicksP,hasPrev))+
+    platKpiHtml('ER React %',     '<span '+liColor+'>'+fmtPct(erReact)+'</span>', erDelta(erReact,erReactP,hasPrev))+
+    platKpiHtml('ER Full %',      '<span '+liColor+'>'+fmtPct(erFull)+'</span>',  erDelta(erFull,erFullP,hasPrev));
+}
+
 /* ============================================================
    RENDER: ANALISI SETTIMANALE
    ============================================================ */
@@ -970,17 +1005,26 @@ function renderSettimanale(){
 
   const r = getRange();
   const weeks={};
+  const emptyWk = () => ({wk:'',fbViews:0,igReach:0,ints:0,fbViewers:0,igR:0,liImpr:0,liUImpr:0,liEng:0});
   OPTIMEDIA_DATA.facebook.metriche.forEach(m=>{
     if(!inRange(m.data, r)) return;
     const wk=isoWeek(m.data);
-    if(!weeks[wk]) weeks[wk]={wk,fbViews:0,igReach:0,ints:0,fbViewers:0,igR:0};
+    if(!weeks[wk]){ weeks[wk]=emptyWk(); weeks[wk].wk=wk; }
     weeks[wk].fbViews+=m.views; weeks[wk].fbViewers+=m.viewers; weeks[wk].ints+=m.interactions;
   });
   OPTIMEDIA_DATA.instagram.metriche.forEach(m=>{
     if(!inRange(m.data, r)) return;
     const wk=isoWeek(m.data);
-    if(!weeks[wk]) weeks[wk]={wk,fbViews:0,igReach:0,ints:0,fbViewers:0,igR:0};
+    if(!weeks[wk]){ weeks[wk]=emptyWk(); weeks[wk].wk=wk; }
     weeks[wk].igReach+=m.reach; weeks[wk].igR+=m.reach; weeks[wk].ints+=m.interactions;
+  });
+  (OPTIMEDIA_DATA.linkedin.metriche||[]).forEach(m=>{
+    if(!inRange(m.data, r)) return;
+    const wk=isoWeek(m.data);
+    if(!weeks[wk]){ weeks[wk]=emptyWk(); weeks[wk].wk=wk; }
+    weeks[wk].liImpr  +=(m.impressions||0);
+    weeks[wk].liUImpr +=(m.unique_impressions||0);
+    weeks[wk].liEng   +=(m.reactions||0)+(m.clicks||0);
   });
   const sorted=Object.values(weeks).sort((a,b)=>a.wk.localeCompare(b.wk));
 
@@ -1003,12 +1047,15 @@ function renderSettimanale(){
     const prev=i>0?sorted[i-1]:null;
     const totalR=w.fbViewers+w.igR;
     const er=totalR>0?(w.ints/totalR)*100:0;
+    const liEr = w.liUImpr>0 ? w.liEng/w.liUImpr*100 : 0;
     return '<tr>'
       +'<td><b>'+weekLabel(w.wk)+'</b> <span style="color:var(--text-3);font-size:11px">'+w.wk+'</span>'+paidFlag(w.wk)+'</td>'
       +'<td class="num" style="color:var(--fb)">'+fmt(w.fbViews)+'</td>'
       +'<td class="num" style="color:var(--ig)">'+fmt(w.igReach)+'</td>'
       +'<td class="num">'+fmt(w.ints)+'</td>'
       +'<td class="num">'+fmtPct(er)+'</td>'
+      +'<td class="num" style="color:var(--li)">'+fmt(w.liImpr)+'</td>'
+      +'<td class="num" style="color:var(--li)">'+fmtPct(liEr)+'</td>'
       +'<td class="num">'+dHtml(w.ints,prev?prev.ints:null)+'</td>'
       +'</tr>';
   }).join('') || '<tr><td colspan="6" style="color:var(--text-3);text-align:center;padding:20px">Nessun dato</td></tr>';
@@ -1189,11 +1236,13 @@ function renderLinkedinTopPosts(){
   const posts = OPTIMEDIA_DATA.linkedin.posts.sort((a,b)=>(b.reactions+b.clicks)-(a.reactions+a.clicks)).slice(0,5);
   document.getElementById('liTopPosts').innerHTML = posts.map(p=>{
     const title = p.title.length>60 ? p.title.slice(0,57)+'...' : p.title;
+    const erReact = p.impressions > 0 ? p.reactions/p.impressions*100 : 0;
     return '<tr><td><span style="font-size:12px">'+title+'</span></td>'
       +'<td class="num">'+fmt(p.impressions)+'</td>'
       +'<td class="num">'+fmt(p.reactions)+'</td>'
       +'<td class="num">'+fmt(p.clicks)+'</td>'
       +'<td class="num">'+nfDec.format(p.ctr)+'%</td>'
+      +'<td class="num">'+nfDec.format(erReact)+'%</td>'
       +'<td class="num" style="color:var(--li)"><b>'+nfDec.format(p.er)+'%</b></td></tr>';
   }).join('');
 }
@@ -1302,6 +1351,8 @@ function renderLinkedin(){
    ============================================================ */
 
 function getPeriodFactor(){
+  if(state.period === 'mensile')     return 1;
+  if(state.period === 'settimanale') return 7/30;
   const r = getRange();
   const days = Math.max(1, Math.round((new Date(r.to) - new Date(r.from)) / (1000*60*60*24)) + 1);
   return days / 30;
