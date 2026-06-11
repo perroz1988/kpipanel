@@ -327,6 +327,9 @@ fetch('/api/auth/verify')
 
   <!-- TAB: AUDIENCE -->
   <div class="tab-content" id="tab-audience">
+    <div style="margin-bottom:16px;padding:8px 14px;background:var(--bg-2);border-radius:8px;font-size:12px;color:var(--text-3)">
+      Dati demografici (paesi, città, età/genere) <b>snapshot statici</b> — non rispondono al filtro periodo. Solo i <em>Nuovi follower IG</em> variano col periodo selezionato.
+    </div>
     <div class="row-2">
       <div class="card">
         <h3>Top Paesi <span class="hint">audience Facebook vs Instagram</span></h3>
@@ -394,7 +397,7 @@ fetch('/api/auth/verify')
 
     <!-- Top posts -->
     <div class="card" style="margin-bottom:20px">
-      <h3>Top 5 Post <span class="hint">per engagement rate</span></h3>
+      <h3>Top 5 Post <span class="hint">per engagement rate &middot; storico completo</span></h3>
       <table class="tbl">
         <thead><tr>
           <th style="width:45%">Post</th>
@@ -965,13 +968,16 @@ function renderSettimanale(){
     return fs(s)+'&ndash;'+fs(e);
   }
 
+  const r = getRange();
   const weeks={};
   OPTIMEDIA_DATA.facebook.metriche.forEach(m=>{
+    if(!inRange(m.data, r)) return;
     const wk=isoWeek(m.data);
     if(!weeks[wk]) weeks[wk]={wk,fbViews:0,igReach:0,ints:0,fbViewers:0,igR:0};
     weeks[wk].fbViews+=m.views; weeks[wk].fbViewers+=m.viewers; weeks[wk].ints+=m.interactions;
   });
   OPTIMEDIA_DATA.instagram.metriche.forEach(m=>{
+    if(!inRange(m.data, r)) return;
     const wk=isoWeek(m.data);
     if(!weeks[wk]) weeks[wk]={wk,fbViews:0,igReach:0,ints:0,fbViewers:0,igR:0};
     weeks[wk].igReach+=m.reach; weeks[wk].igR+=m.reach; weeks[wk].ints+=m.interactions;
@@ -1094,7 +1100,9 @@ function renderAudience(r){
 function drawLinkedInChart(fbRows, igRows){
   const canvas = document.getElementById('liChartTrend');
   if(!canvas) return;
-  const liMetrics = OPTIMEDIA_DATA.linkedin.metriche;
+  const r = getRange();
+  const liMetrics = (OPTIMEDIA_DATA.linkedin.metriche || []).filter(m=>inRange(m.data, r));
+  if(!liMetrics.length){ const ctx2=canvas.getContext('2d'); ctx2.clearRect(0,0,canvas.width,canvas.height); return; }
   const dates = liMetrics.map(m=>m.data);
   const W = canvas.parentElement.offsetWidth || 860;
   const H = 340;
