@@ -39,6 +39,9 @@
   --warn-text: oklch(38% 0.09 65);
   /* Alias */
   --bg-2: var(--surface-mid);
+  /* Spacing scale */
+  --sp-1: 8px;  --sp-2: 12px;  --sp-3: 16px;
+  --sp-4: 20px; --sp-5: 24px;  --sp-6: 32px;
 }
 * { box-sizing:border-box; }
 html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif; font-size:14px; }
@@ -97,9 +100,31 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .kpi-info:hover .kpi-tip, .kpi-info:focus-visible .kpi-tip { display:block; }
 
 /* Grid layouts */
-.kpi-row-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px; }
-.row-2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px; }
-.row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+.kpi-row-4 { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:var(--sp-4); }
+.row-2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); margin-bottom:var(--sp-4); }
+.row-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--sp-3); margin-bottom:var(--sp-4); }
+
+/* Auto-spacing for top-level cards within tabs */
+.tab-content > .card { margin-bottom:var(--sp-4); }
+.tab-content > .card:last-child { margin-bottom:0; }
+
+/* Accent card variant (notes, info highlights) */
+.card-accent { background:var(--meta-lt); border-color:var(--meta); font-size:12px; }
+
+/* KPI value color variants */
+.val.li-color { color:var(--li); }
+
+/* KPI Tracker card — CSS-class-driven layout */
+.kpi-tc { background:var(--card); border:1px solid var(--border); border-radius:8px; padding:14px 16px; }
+.kpi-tc-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.kpi-tc-label { color:var(--text-2); font-size:12px; font-weight:700; text-transform:uppercase; }
+.kpi-tc-vals { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+.kpi-tc-vl { font-size:10px; color:var(--text-3); margin-bottom:2px; }
+.kpi-tc-vn { font-size:20px; font-weight:800; }
+.kpi-tc-target { font-size:20px; font-weight:800; color:var(--text-3); }
+.kpi-tc-bar { height:5px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:6px; }
+.kpi-tc-fill { height:100%; }
+.kpi-tc-foot { display:flex; justify-content:space-between; font-size:11px; color:var(--text-3); }
 
 /* Platform sections */
 .platform-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:24px; }
@@ -114,7 +139,7 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .platform-title.fb { color:var(--fb); }
 .platform-title.ig { color:var(--ig); }
 .platform-header.li { background:var(--li-lt); border-bottom:2px solid var(--li); }
-.platform-icon.li { background:var(--li); }
+.platform-icon.li { background:var(--li); font-size:12px; font-weight:700; }
 .platform-title.li { color:var(--li); }
 .platform-kpi-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; }
 .platform-kpi { padding:12px 14px 14px; border-right:1px solid var(--border-lt); border-bottom:1px solid var(--border-lt); background:var(--card); }
@@ -185,6 +210,11 @@ canvas.trend-canvas { display:block; width:100%; }
 .toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px); background:var(--text); color:#fff; padding:14px 20px; border-radius:10px; font-size:13px; box-shadow:0 4px 16px rgba(0,0,0,.2); opacity:0; transition:all .25s; pointer-events:none; max-width:520px; line-height:1.5; z-index:1000; }
 .toast.show { opacity:1; transform:translateX(-50%) translateY(0); pointer-events:auto; }
 .toast.success { background:var(--pos); }
+
+/* Accessibility: honour OS reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .tab, .period-tab, .btn, .logout-btn, .toast { transition: none !important; }
+}
 
 @media print {
   .topbar,.tabs,.period-bar { display:none !important; }
@@ -279,7 +309,7 @@ fetch('/api/auth/verify')
     <div class="kpi-row-4" id="kpiCross"></div>
 
     <!-- Trend chart -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3>Trend giornaliero <span class="hint">FB Views &middot; IG Reach &middot; Interazioni totali</span></h3>
       <div id="chartWrap" style="position:relative;height:340px">
         <canvas id="chartTrend" class="trend-canvas" style="height:340px" role="img" aria-label="Trend giornaliero FB Views, IG Reach e Interazioni"></canvas>
@@ -288,7 +318,7 @@ fetch('/api/auth/verify')
         <span><span class="legend-dot" style="background:var(--fb)"></span>&nbsp;FB Views (scala dx)</span>
         <span><span class="legend-dot" style="background:var(--ig)"></span>&nbsp;IG Reach (scala dx)</span>
         <span><span style="display:inline-block;width:16px;border-top:2px dashed var(--meta);vertical-align:middle"></span>&nbsp;Interazioni (scala sx)</span>
-        <span style="margin-left:auto;color:#8A6206">&#9889; = paid W21 (18–23 mag) &middot; &#9889; = paid W23 (5+ giu)</span>
+        <span style="margin-left:auto;color:#8A6206">&#9889; paid &mdash; W21 (18–23 mag) · 🌱&#9889; W23 (5+ giu, misto)</span>
       </div>
     </div>
 
@@ -314,8 +344,8 @@ fetch('/api/auth/verify')
       <!-- LinkedIn -->
       <div class="platform-col">
         <div class="platform-header li">
-          <div class="platform-icon li" style="font-size:12px;font-weight:700;color:oklch(99% 0.005 220)">in</div>
-          <div class="platform-title li" style="margin-left:10px">LinkedIn</div>
+          <div class="platform-icon li">in</div>
+          <div class="platform-title li">LinkedIn</div>
         </div>
         <div class="platform-kpi-grid" id="liKpisOverview"></div>
       </div>
@@ -402,7 +432,7 @@ fetch('/api/auth/verify')
     <div class="section-divider"><span>Andamento</span></div>
 
     <!-- Trend chart -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3>Trend giornaliero <span class="hint">Impressioni &middot; Reactions &middot; Clicks</span></h3>
       <div id="liChartWrap" style="position:relative;height:340px">
         <canvas id="liChartTrend" class="trend-canvas" style="height:340px" role="img" aria-label="Trend giornaliero LinkedIn: Impressioni e Engagement"></canvas>
@@ -416,7 +446,7 @@ fetch('/api/auth/verify')
     <div class="section-divider"><span>Top Post</span></div>
 
     <!-- Top posts -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3>Top 5 Post <span class="hint">per engagement rate &middot; storico completo</span></h3>
       <table class="tbl">
         <thead><tr>
@@ -435,7 +465,7 @@ fetch('/api/auth/verify')
     <div class="section-divider"><span>Crescita Follower</span></div>
 
     <!-- Follower growth -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3>Crescita Follower <span class="hint">nuovi follower giornalieri · Feb–Giu 2026</span></h3>
       <div style="display:flex;gap:32px;margin-bottom:12px;flex-wrap:wrap">
         <div>
@@ -487,7 +517,7 @@ fetch('/api/auth/verify')
 
   <!-- TAB: KPI TRACKER -->
   <div class="tab-content" id="tab-kpi">
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:20px">
+    <div class="card" style="padding:14px 16px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
         <div>
           <p style="margin:0;color:var(--text-2);font-size:13px;line-height:1.6">
@@ -503,28 +533,28 @@ fetch('/api/auth/verify')
     </div>
 
     <!-- Instagram KPI -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3 style="color:var(--ig)">📸 Instagram</h3>
       <p style="font-size:11px;color:var(--text-3);margin:-4px 0 12px">Target mensili · Obiettivo Feb 2027</p>
       <div id="kpiInstagram"></div>
     </div>
 
     <!-- LinkedIn KPI -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3 style="color:var(--li)">💼 LinkedIn</h3>
       <p style="font-size:11px;color:var(--text-3);margin:-4px 0 12px">Target mensili · Obiettivo Feb 2027</p>
       <div id="kpiLinkedin"></div>
     </div>
 
     <!-- Facebook KPI -->
-    <div class="card" style="margin-bottom:20px">
+    <div class="card">
       <h3 style="color:var(--fb)">📘 Facebook</h3>
       <p style="font-size:11px;color:var(--text-3);margin:-4px 0 12px">Target mensili · Obiettivo Feb 2027 (cross-post da IG)</p>
       <div id="kpiFacebook"></div>
     </div>
 
     <!-- Notes -->
-    <div class="card" style="background:var(--meta-lt);border-color:var(--meta);font-size:12px;color:var(--text)">
+    <div class="card card-accent">
       <p><b>Note metodologiche:</b></p>
       <ul style="margin:8px 0;padding-left:20px;line-height:1.6">
         <li>I target sono <b>valori mensili per Febbraio 2027</b> — riscalati automaticamente per il periodo selezionato</li>
@@ -1371,39 +1401,25 @@ function scaledTarget(platform, metric, isRate){
 }
 
 function renderKPICard(label, actual, monthlyTarget, {unit='', isRate=false, monthlyLabel=''} = {}){
-  const target = isRate ? monthlyTarget : monthlyTarget * getPeriodFactor();
-  const pct    = target > 0 ? Math.min((actual / target) * 100, 999) : 0;
-  const status = pct >= 100 ? '✅' : pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
-  const barCls  = pct >= 100 ? 'var(--pos)' : pct >= 80 ? 'var(--pos)' : pct >= 50 ? '#F59E0B' : 'var(--neg)';
+  const target  = isRate ? monthlyTarget : monthlyTarget * getPeriodFactor();
+  const pct     = target > 0 ? Math.min((actual / target) * 100, 999) : 0;
+  const status  = pct >= 100 ? '✅' : pct >= 80 ? '🟢' : pct >= 50 ? '🟡' : '🔴';
+  const barClr  = pct >= 80 ? 'var(--pos)' : pct >= 50 ? '#F59E0B' : 'var(--neg)';
   const valCls  = pct >= 100 ? 'pos' : pct >= 50 ? 'neutral' : 'neg';
   const fmtVal  = isRate ? nfDec.format(actual)+unit : fmt(Math.round(actual))+unit;
   const fmtTgt  = isRate ? nfDec.format(target)+unit : fmt(Math.round(target))+unit;
-  const sub     = !isRate && monthlyLabel ? `<span style="color:var(--text-3)">Target mensile: ${fmt(Math.round(monthlyTarget))}${unit}</span>` : '';
-
-  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
-      <span style="color:var(--text-2);font-size:12px;font-weight:700;text-transform:uppercase">${label}</span>
-      <span style="font-size:16px">${status}</span>
+  const sub     = !isRate && monthlyLabel ? `<span>Target mensile: ${fmt(Math.round(monthlyTarget))}${unit}</span>` : '';
+  return `<div class="kpi-tc">
+    <div class="kpi-tc-head"><span class="kpi-tc-label">${label}</span><span style="font-size:16px">${status}</span></div>
+    <div class="kpi-tc-vals">
+      <div><div class="kpi-tc-vl">Attuale</div><div class="kpi-tc-vn"><span class="${valCls}">${fmtVal}</span></div></div>
+      <div><div class="kpi-tc-vl">Obiettivo periodo</div><div class="kpi-tc-target">${fmtTgt}</div></div>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-      <div>
-        <div style="font-size:10px;color:var(--text-3);margin-bottom:2px">Attuale</div>
-        <div style="font-size:20px;font-weight:800"><span class="${valCls}">${fmtVal}</span></div>
-      </div>
-      <div>
-        <div style="font-size:10px;color:var(--text-3);margin-bottom:2px">Obiettivo periodo</div>
-        <div style="font-size:20px;font-weight:800;color:var(--text-3)">${fmtTgt}</div>
-      </div>
-    </div>
-    <div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-bottom:6px">
-      <div style="width:${Math.min(pct,100)}%;height:100%;background:${barCls}"></div>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-3)">
-      <span>${nfDec.format(pct)}% raggiunto</span>
-      ${sub}
-    </div>
+    <div class="kpi-tc-bar"><div class="kpi-tc-fill" style="width:${Math.min(pct,100)}%;background:${barClr}"></div></div>
+    <div class="kpi-tc-foot"><span>${nfDec.format(pct)}% raggiunto</span>${sub}</div>
   </div>`;
 }
+
 
 function renderInstagramKPI(){
   const r = getRange();
