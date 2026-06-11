@@ -571,8 +571,9 @@ function getRange(){
     return { from: toISO(start > parseISO(min) ? start : parseISO(min)), to: max };
   }
   if(state.period === 'mensile'){
-    const end = parseISO(max);
-    const start = new Date(end); start.setDate(end.getDate()-27);
+    // Anchor to today (not to data end) so mensile ≠ storico when data is a few days old
+    const today = new Date(); today.setHours(0,0,0,0);
+    const start = new Date(today); start.setDate(today.getDate()-29);
     return { from: toISO(start > parseISO(min) ? start : parseISO(min)), to: max };
   }
   if(state.period === 'custom'){
@@ -1440,7 +1441,7 @@ function renderKPITracker(){
   const isQ = currentN % 3 === 0;
   const qLabel = isQ ? ` — Q${Math.floor(currentN/3)} Review` : '';
 
-  const periodMap = {'settimanale':'Settimanale (7 gg)','mensile':'Mensile (28 gg)','storico':'Storico (Feb 2026 – Oggi)','custom':'Personalizzato'};
+  const periodMap = {'settimanale':'Settimanale (7 gg)','mensile':'Mensile (30 gg da oggi)','storico':'Storico (Feb 2026 – Oggi)','custom':'Personalizzato'};
   const periodLabel = periodMap[state.period] || 'Storico';
 
   document.getElementById('kpiPeriodLabel').textContent = `${periodLabel} · ${fmtDate(range.from)} → ${fmtDate(range.to)} · ×${nfDec.format(months)} mesi`;
