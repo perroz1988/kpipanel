@@ -59,6 +59,18 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .period-tab { padding:5px 13px; cursor:pointer; border-radius:6px; font-weight:600; color:var(--text-3); font-size:12.5px; transition:color .15s; }
 .period-tab.active { background:var(--card); color:var(--li-blue); box-shadow:0 1px 2px rgba(0,0,0,.06); }
 .period-range { color:var(--text-2); font-size:12px; }
+/* Pannello copertura dati: spiega range attivo + da quando parte ogni serie */
+.coverage-panel { background:var(--surface-mid); border:1px solid var(--border); border-radius:10px; padding:11px 15px; margin:-6px 0 20px; display:flex; flex-direction:column; gap:9px; }
+.cov-active { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.cov-period { font-weight:700; text-transform:uppercase; letter-spacing:.5px; font-size:10.5px; color:var(--li-blue); background:#E7F0FA; padding:3px 10px; border-radius:5px; }
+.cov-range { font-weight:700; color:var(--text); font-size:14px; letter-spacing:-.2px; }
+.cov-days { color:var(--text-3); font-size:12px; }
+.cov-desc { color:var(--text-2); font-size:12px; }
+.cov-sources { display:flex; flex-wrap:wrap; gap:7px; align-items:center; border-top:1px dashed var(--border); padding-top:9px; }
+.cov-srclabel { font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-3); margin-right:2px; }
+.cov-chip { display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-2); background:var(--card); border:1px solid var(--border); border-radius:20px; padding:3px 11px; white-space:nowrap; }
+.cov-chip b { color:var(--text); font-weight:600; }
+.cov-dot { width:8px; height:8px; border-radius:50%; flex:none; }
 .period-custom { display:none; gap:8px; align-items:center; margin-left:auto; }
 .period-custom.show { display:inline-flex; }
 .period-custom input { padding:6px 8px; border:1px solid var(--border); border-radius:6px; font-size:13px; }
@@ -534,6 +546,18 @@ fetch('/api/auth/verify')
       <label style="font-size:12px;color:var(--text-2)">a</label>
       <input type="date" id="dateTo">
       <button class="btn" id="applyCustom">Applica</button>
+    </div>
+  </div>
+
+  <div class="coverage-panel" id="coveragePanel">
+    <div class="cov-active">
+      <span class="cov-period" id="covPeriodName">—</span>
+      <span class="cov-range" id="covRange">—</span>
+      <span class="cov-days" id="covDays"></span>
+      <span class="cov-desc" id="covDesc"></span>
+    </div>
+    <div class="cov-sources" id="covSources">
+      <span class="cov-srclabel">Copertura dati caricati</span>
     </div>
   </div>
 
@@ -1091,10 +1115,45 @@ function thumbHTML(post, size='sm'){
 checkMissingData();
 
 /* ============ RENDERERS ============ */
+function renderCoverage(r){
+  const sh = iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-'); return `${d}/${m}`; };
+  const span = arr => { const s=arr.filter(Boolean).sort(); return s.length ? `${sh(s[0])} → ${sh(s[s.length-1])}` : '—'; };
+
+  // Range attivo + spiegazione del periodo selezionato
+  const calDays = Math.round((parseISO(r.to)-parseISO(r.from))/86400000)+1;
+  const pName = { settimanale:'Settimanale', mensile:'Mensile', custom:'Custom' }[state.period] || 'Storico';
+  const pDesc = {
+    settimanale:'Ultimi 7 giorni · confronto vs settimana precedente',
+    mensile:'Ultimi 30 giorni · confronto vs mese precedente',
+    custom:'Intervallo scelto manualmente',
+    storico:'Tutto il periodo disponibile, dal primo dato caricato',
+  }[state.period] || 'Tutto il periodo disponibile, dal primo dato caricato';
+  document.getElementById('covPeriodName').textContent = pName;
+  document.getElementById('covRange').textContent = `${fmtDate(r.from)} → ${fmtDate(r.to)}`;
+  document.getElementById('covDays').textContent = `· ${calDays} giorni`;
+  document.getElementById('covDesc').textContent = `— ${pDesc}`;
+
+  // Copertura reale di ogni serie (da quando parte cosa)
+  const camp = (typeof CAMP_DATA!=='undefined' ? (CAMP_DATA.daily||[]) : []).map(d=>d.date);
+  const keye = (typeof KEYE_DATA!=='undefined' && KEYE_DATA?.meta?.exportedAt) ? fmtDate(KEYE_DATA.meta.exportedAt.slice(0,10)) : null;
+  const sources = [
+    { dot:'var(--li-blue)', lbl:'Follower',        v:span(RS_DATA.followers_daily.map(f=>f.data)) },
+    { dot:'var(--spon)',    lbl:'Impressioni/Clic', v:span(RS_DATA.metriche.map(m=>m.data)) },
+    { dot:'var(--pos)',     lbl:'Post organici',   v:span(RS_DATA.posts.map(p=>p.data_creazione)) },
+    { dot:'var(--krein)',   lbl:'Campagne paid',   v:span(camp) },
+  ];
+  if(keye) sources.push({ dot:'var(--keye)', lbl:'Brand Listening', v:`snapshot ${keye}` });
+
+  document.getElementById('covSources').innerHTML =
+    '<span class="cov-srclabel">Copertura dati caricati</span>' +
+    sources.map(s=>`<span class="cov-chip"><span class="cov-dot" style="background:${s.dot}"></span>${s.lbl} <b>${s.v}</b></span>`).join('');
+}
+
 function render(){
   const r = getRange();
   document.getElementById('lastUpdate').textContent = fmtDate(RS_DATA.meta.ultimo_aggiornamento);
   document.getElementById('periodRange').textContent = `Range: ${fmtDate(r.from)} → ${fmtDate(r.to)} (${metricsIn(r).length} giorni)`;
+  renderCoverage(r);
   if(state.tab==='generale') renderGenerale(r);
   if(state.tab==='audience') renderAudience();
   if(state.tab==='contenuti') renderContenuti(r);
