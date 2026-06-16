@@ -564,7 +564,7 @@ fetch('/api/auth/verify')
   <!-- TAB 1: GENERALE -->
   <div class="tab-content active" id="tab-generale" data-print-title="Report Generale">
     <div class="print-section-header"></div>
-    <div class="kpi-row" id="kpiRow"></div>
+    <div class="kpi-row" id="kpiRow" style="grid-template-columns:repeat(8,1fr)"></div>
     <div style="margin-top:12px">
       <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.55px;color:var(--krein);margin-bottom:8px;display:flex;align-items:center;gap:6px">
         <span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--krein)"></span>
@@ -650,7 +650,7 @@ fetch('/api/auth/verify')
       <div class="period-range" id="contCount">—</div>
       <button class="btn" style="margin-left:auto" onclick="exportPostsCSV()" title="Scarica la lista post corrente come file CSV">⬇ CSV</button>
     </div>
-    <div class="kpi-row" id="kpiContenuti" style="grid-template-columns:repeat(5,1fr)"></div>
+    <div class="kpi-row" id="kpiContenuti" style="grid-template-columns:repeat(6,1fr)"></div>
     <div class="card">
       <h3>Lista Post <span class="hint">click su una riga per il drill-down</span></h3>
       <div style="overflow-x:auto"><table class="tbl" id="postsTable">
@@ -660,7 +660,8 @@ fetch('/api/auth/verify')
           <th class="sortable" data-c="titolo">Anteprima / Post <span class="arr">↕</span></th>
           <th class="sortable num" data-c="impressioni">Impressioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reach">Reach <span class="arr">↕</span></th>
-          <th class="sortable num" data-c="er" title="ER = (Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER % <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="er" title="ER 2026 (formula Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER 2026 <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="er25" title="ER 2025 (formula agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER 2025 <span class="arr">↕</span></th>
           <th class="sortable num" data-c="ctr">CTR <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reazioni">Reazioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="commenti">Commenti <span class="arr">↕</span></th>
@@ -1187,12 +1188,19 @@ function renderGenerale(r){
 
   // KPI grandi = solo ORGANICO (filtrabile per periodo → confronto corretto)
   // Paid Krein mostrato separatamente nella riga sotto (aggregato, non filtrabile)
+  // ER 2026 (formula Krein attuale): (reaz+comm+diff) / impressioni × 100
+  // ER 2025 (formula agenzia prec.): (reaz+comm+diff + clic) / impressioni × 100 — include i clic
   const er = sums.impressioni_org>0
     ? (sums.reazioni_org+sums.commenti_org+sums.diffusioni_org)/sums.impressioni_org*100 : 0;
   const erPrev = sumsPrev.impressioni_org>0
     ? (sumsPrev.reazioni_org+sumsPrev.commenti_org+sumsPrev.diffusioni_org)/sumsPrev.impressioni_org*100 : null;
+  const er25 = sums.impressioni_org>0
+    ? (sums.reazioni_org+sums.commenti_org+sums.diffusioni_org+sums.clic_org)/sums.impressioni_org*100 : 0;
+  const er25Prev = sumsPrev.impressioni_org>0
+    ? (sumsPrev.reazioni_org+sumsPrev.commenti_org+sumsPrev.diffusioni_org+sumsPrev.clic_org)/sumsPrev.impressioni_org*100 : null;
   const postsR = postsTotaleAll().filter(p=>p.data_creazione && inRange(p.data_creazione, r));
   const erSimple = postsR.length>0 ? postsR.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100:0),0)/postsR.length : 0;
+  const erSimple25 = postsR.length>0 ? postsR.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni+p.clic)/p.impressioni*100:0),0)/postsR.length : 0;
 
   const ctrCamp = camp.imp>0 ? camp.clicks/camp.imp*100 : 0;
 
@@ -1208,11 +1216,16 @@ function renderGenerale(r){
     { lbl:'Follower Totali', val: fmt(totFan), prevVal: null, delta:null },
     { lbl:'Crescita Settimanale', val: `+${fmt(cresWeek)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresWeekPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 7 giorni' } },
     { lbl:'Crescita Mensile', val: `+${fmt(cresMonth)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresMonthPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 30 giorni (max disp.)' } },
-    { lbl:'Engagement Rate', val: erSimple>0 ? fmtPct(erSimple) : fmtPct(er),
-      hint:'Solo post organici del piano editoriale.\nSemplice: media ER per singolo post\nPonderata: (Σ reaz+comm+diff) / Σ impressioni × 100',
+    { lbl:'ER 2026', val: erSimple>0 ? fmtPct(erSimple) : fmtPct(er),
+      hint:'Formula Krein (attuale): (reazioni + commenti + diffusioni) / impressioni × 100.\nMisura il coinvolgimento puro, esclude i clic.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: (Σ reaz+comm+diff) / Σ impressioni',
       sub: erSimple>0 ? `Ponderata: ${fmtPct(er)}` : null,
       prevVal: erPrev!=null ? fmtPct(erPrev) : null,
       delta: erPrev!=null?{ txt: `${er>=erPrev?'↑':'↓'} ${nfDec.format(Math.abs(er-erPrev))} pp`, cls:er>=erPrev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
+    { lbl:'ER 2025', val: erSimple25>0 ? fmtPct(erSimple25) : fmtPct(er25),
+      hint:'Formula agenzia precedente: (reazioni + commenti + diffusioni + clic) / impressioni × 100.\nInclude i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: (Σ reaz+comm+diff+clic) / Σ impressioni',
+      sub: erSimple25>0 ? `Ponderata: ${fmtPct(er25)}` : null,
+      prevVal: er25Prev!=null ? fmtPct(er25Prev) : null,
+      delta: er25Prev!=null?{ txt: `${er25>=er25Prev?'↑':'↓'} ${nfDec.format(Math.abs(er25-er25Prev))} pp`, cls:er25>=er25Prev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
     { lbl:'CTR Krein', val: fmtPct(ctrCamp),
       hint:'Click / Impressioni campagne Krein (periodo selezionato)',
       prevVal: null, delta:{ txt:'paid Krein', cls:'neutral', pctTxt:'vedi riga Krein sotto' } },
@@ -1481,13 +1494,18 @@ function renderContenuti(r){
     const erSimple = arr.length>0
       ? arr.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100:0),0)/arr.length
       : 0;
+    const erSimple25 = arr.length>0
+      ? arr.reduce((s,p)=>s+(p.impressioni>0?(p.reazioni+p.commenti+p.diffusioni+p.clic)/p.impressioni*100:0),0)/arr.length
+      : 0;
     return {
       count: arr.length,
       pedn: arr.length>0 ? eng/arr.length : 0,
       impAvg: arr.length>0 ? imp/arr.length : 0,
       ctrAvg: imp>0 ? cl/imp*100 : 0,
-      erAvg:  imp>0 ? eng/imp*100 : 0,
+      erAvg:  imp>0 ? eng/imp*100 : 0,        // ER 2026 (Krein): senza clic
+      erAvg25: imp>0 ? (eng+cl)/imp*100 : 0,  // ER 2025 (agenzia prec.): con clic
       erSimple,
+      erSimple25,
     };
   }
   const m = calcM(pool);
@@ -1508,11 +1526,16 @@ function renderContenuti(r){
     { lbl:'CTR medio', val: fmtPct(m.ctrAvg),
       prevVal: hasPrev && mp.ctrAvg>0 ? fmtPct(mp.ctrAvg) : null,
       delta: hasPrev && mp.ctrAvg>0 ? { txt:`${m.ctrAvg>=mp.ctrAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.ctrAvg-mp.ctrAvg))} pp`, cls:m.ctrAvg>=mp.ctrAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
-    { lbl:'Engagement Rate', val: m.erSimple>0 ? fmtPct(m.erSimple) : fmtPct(m.erAvg),
-      hint:'Semplice: media delle ER per singolo post\nPonderata: (Σ reaz+comm+diff) / Σ impressioni × 100',
+    { lbl:'ER 2026', val: m.erSimple>0 ? fmtPct(m.erSimple) : fmtPct(m.erAvg),
+      hint:'Formula Krein (attuale): (reazioni + commenti + diffusioni) / impressioni × 100.\nMisura il coinvolgimento puro, esclude i clic.\nSemplice: media delle ER per singolo post · Ponderata: (Σ reaz+comm+diff) / Σ impressioni',
       sub: m.erSimple>0 ? `Ponderata: ${fmtPct(m.erAvg)}` : null,
       prevVal: hasPrev && mp.erAvg>0 ? fmtPct(mp.erAvg) : null,
       delta: hasPrev && mp.erAvg>0 ? { txt:`${m.erAvg>=mp.erAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg-mp.erAvg))} pp`, cls:m.erAvg>=mp.erAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
+    { lbl:'ER 2025', val: m.erSimple25>0 ? fmtPct(m.erSimple25) : fmtPct(m.erAvg25),
+      hint:'Formula agenzia precedente: (reazioni + commenti + diffusioni + clic) / impressioni × 100.\nInclude i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSemplice: media delle ER per singolo post · Ponderata: (Σ reaz+comm+diff+clic) / Σ impressioni',
+      sub: m.erSimple25>0 ? `Ponderata: ${fmtPct(m.erAvg25)}` : null,
+      prevVal: hasPrev && mp.erAvg25>0 ? fmtPct(mp.erAvg25) : null,
+      delta: hasPrev && mp.erAvg25>0 ? { txt:`${m.erAvg25>=mp.erAvg25?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg25-mp.erAvg25))} pp`, cls:m.erAvg25>=mp.erAvg25?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
   ];
   document.getElementById('kpiContenuti').innerHTML = cards.map(c=>{
     const prev  = c.prevVal != null ? `<div class="prev-val">${prevLabel()} <b>${c.prevVal}</b></div>` : '';
@@ -1550,7 +1573,8 @@ function renderPosts(){
     }), {imp:0,reach:0,ctr:0,reazioni:0,commenti:0,diffusioni:0});
     return {
       ...agg,
-      er: agg.imp>0 ? (agg.reazioni+agg.commenti+agg.diffusioni)/agg.imp*100 : 0,
+      er: agg.imp>0 ? (agg.reazioni+agg.commenti+agg.diffusioni)/agg.imp*100 : 0,            // ER 2026
+      er25: agg.imp>0 ? (agg.reazioni+agg.commenti+agg.diffusioni+agg.ctr)/agg.imp*100 : 0,  // ER 2025 (agg.ctr = somma clic)
       ctr_pct: agg.imp>0 ? agg.ctr/agg.imp*100 : 0
     };
   };
@@ -1559,8 +1583,9 @@ function renderPosts(){
   for(const tipo in byTipo){
     byTipo[tipo].sort((a,b)=>{
       const postER = p => p.impressioni > 0 ? (p.reazioni + p.commenti + p.diffusioni) / p.impressioni : 0;
-      const va = col==='reach'?a.impressioni : col==='er'?postER(a) : a[col];
-      const vb = col==='reach'?b.impressioni : col==='er'?postER(b) : b[col];
+      const postER25 = p => p.impressioni > 0 ? (p.reazioni + p.commenti + p.diffusioni + p.clic) / p.impressioni : 0;
+      const va = col==='reach'?a.impressioni : col==='er'?postER(a) : col==='er25'?postER25(a) : a[col];
+      const vb = col==='reach'?b.impressioni : col==='er'?postER(b) : col==='er25'?postER25(b) : b[col];
       if(col==='data') return sign*(a.data_creazione||'').localeCompare(b.data_creazione||'');
       if(col==='titolo') return sign*((va||'')+'').localeCompare((vb||'')+'');
       return sign*((va||0)-(vb||0));
@@ -1589,6 +1614,7 @@ function renderPosts(){
       <td class="num">${fmt(agg.imp)}</td>
       <td class="num">—</td>
       <td class="num">${fmtPct(agg.er)}</td>
+      <td class="num">${fmtPct(agg.er25)}</td>
       <td class="num">${fmtPct(agg.ctr_pct)}</td>
       <td class="num">${fmt(agg.reazioni)}</td>
       <td class="num">${fmt(agg.commenti)}</td>
@@ -1599,6 +1625,7 @@ function renderPosts(){
     for(const p of posts){
       const preview = (p.titolo||'').replace(/\s+/g,' ').slice(0,80) + ((p.titolo||'').length>80?'…':'');
       const er = p.impressioni>0 ? fmtPct((p.reazioni+p.commenti+p.diffusioni)/p.impressioni*100) : '—';
+      const er25 = p.impressioni>0 ? fmtPct((p.reazioni+p.commenti+p.diffusioni+p.clic)/p.impressioni*100) : '—';
       html += `<tr class="post-row ${id}" style="background:var(--surface);font-size:11px;color:var(--text-2);cursor:pointer" data-link="${p.link}" data-tipo="${p.tipo}">
         <td>${thumbHTML(p,'sm')}</td>
         <td style="font-size:11px">${fmtDate(p.data_creazione)}</td>
@@ -1606,6 +1633,7 @@ function renderPosts(){
         <td class="num">${fmt(p.impressioni)}</td>
         <td class="num">—</td>
         <td class="num">${er}</td>
+        <td class="num">${er25}</td>
         <td class="num">${fmtPct(p.ctr*100)}</td>
         <td class="num">${fmt(p.reazioni)}</td>
         <td class="num">${fmt(p.commenti)}</td>
@@ -1790,7 +1818,8 @@ function renderPostDetail(){
         <h3>Metriche chiave (Totale)</h3>
         <div class="row-2" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
           <div class="metric-big"><div class="lbl">Impressioni</div><div class="val">${fmt(post.impressioni)}</div></div>
-          <div class="metric-big" title="(Reazioni + Commenti + Diffusioni) / Impressioni × 100"><div class="lbl">ER %</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni)/post.impressioni*100):'—'}</div></div>
+          <div class="metric-big" title="ER 2026 (formula Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100"><div class="lbl">ER 2026</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni)/post.impressioni*100):'—'}</div></div>
+          <div class="metric-big" title="ER 2025 (formula agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100"><div class="lbl">ER 2025</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni+post.clic)/post.impressioni*100):'—'}</div></div>
           <div class="metric-big"><div class="lbl">CTR</div><div class="val">${fmtPct(post.ctr*100)}</div></div>
           <div class="metric-big"><div class="lbl">Reazioni</div><div class="val">${fmt(post.reazioni)}</div></div>
           <div class="metric-big"><div class="lbl">Commenti</div><div class="val">${fmt(post.commenti)}</div></div>
