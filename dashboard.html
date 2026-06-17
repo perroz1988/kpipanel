@@ -660,8 +660,8 @@ fetch('/api/auth/verify')
           <th class="sortable" data-c="titolo">Anteprima / Post <span class="arr">↕</span></th>
           <th class="sortable num" data-c="impressioni">Impressioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reach">Reach <span class="arr">↕</span></th>
-          <th class="sortable num" data-c="er" title="ER 2026 (formula Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100">ER 2026 <span class="arr">↕</span></th>
-          <th class="sortable num" data-c="er25" title="ER 2025 (formula agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER 2025 <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="er" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER formula 2026 <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="er25" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER formula 2025 <span class="arr">↕</span></th>
           <th class="sortable num" data-c="ctr">CTR <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reazioni">Reazioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="commenti">Commenti <span class="arr">↕</span></th>
@@ -1216,13 +1216,13 @@ function renderGenerale(r){
     { lbl:'Follower Totali', val: fmt(totFan), prevVal: null, delta:null },
     { lbl:'Crescita Settimanale', val: `+${fmt(cresWeek)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresWeekPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 7 giorni' } },
     { lbl:'Crescita Mensile', val: `+${fmt(cresMonth)}`, prevVal: null, delta:{ txt:`+${nfDec.format(cresMonthPct)}% sul totale`, cls:'pos', pctTxt:'ultimi 30 giorni (max disp.)' } },
-    { lbl:'ER 2026', val: erSimple>0 ? fmtPct(erSimple) : fmtPct(er),
-      hint:'Formula Krein (attuale): (reazioni + commenti + diffusioni) / impressioni × 100.\nMisura il coinvolgimento puro, esclude i clic.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: (Σ reaz+comm+diff) / Σ impressioni',
+    { lbl:'ER formula 2026', val: erSimple>0 ? fmtPct(erSimple) : fmtPct(er),
+      hint:'ER formula 2026 (Krein, attuale) = (reazioni + commenti + diffusioni) / impressioni × 100\nER formula 2025 (agenzia prec.) = (reazioni + commenti + diffusioni + clic) / impressioni × 100\n\nLa formula 2026 misura il coinvolgimento puro, esclude i clic.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: Σ eng / Σ impressioni',
       sub: erSimple>0 ? `Ponderata: ${fmtPct(er)}` : null,
       prevVal: erPrev!=null ? fmtPct(erPrev) : null,
       delta: erPrev!=null?{ txt: `${er>=erPrev?'↑':'↓'} ${nfDec.format(Math.abs(er-erPrev))} pp`, cls:er>=erPrev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
-    { lbl:'ER 2025', val: erSimple25>0 ? fmtPct(erSimple25) : fmtPct(er25),
-      hint:'Formula agenzia precedente: (reazioni + commenti + diffusioni + clic) / impressioni × 100.\nInclude i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: (Σ reaz+comm+diff+clic) / Σ impressioni',
+    { lbl:'ER formula 2025', val: erSimple25>0 ? fmtPct(erSimple25) : fmtPct(er25),
+      hint:'ER formula 2026 (Krein, attuale) = (reazioni + commenti + diffusioni) / impressioni × 100\nER formula 2025 (agenzia prec.) = (reazioni + commenti + diffusioni + clic) / impressioni × 100\n\nLa formula 2025 include i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSolo post organici del piano editoriale.\nSemplice: media ER per singolo post · Ponderata: Σ eng / Σ impressioni',
       sub: erSimple25>0 ? `Ponderata: ${fmtPct(er25)}` : null,
       prevVal: er25Prev!=null ? fmtPct(er25Prev) : null,
       delta: er25Prev!=null?{ txt: `${er25>=er25Prev?'↑':'↓'} ${nfDec.format(Math.abs(er25-er25Prev))} pp`, cls:er25>=er25Prev?'pos':'neg', pctTxt:'pp vs periodo prec.' }:{ txt:'—', cls:'neutral', pctTxt:'storico insufficiente' } },
@@ -1526,13 +1526,13 @@ function renderContenuti(r){
     { lbl:'CTR medio', val: fmtPct(m.ctrAvg),
       prevVal: hasPrev && mp.ctrAvg>0 ? fmtPct(mp.ctrAvg) : null,
       delta: hasPrev && mp.ctrAvg>0 ? { txt:`${m.ctrAvg>=mp.ctrAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.ctrAvg-mp.ctrAvg))} pp`, cls:m.ctrAvg>=mp.ctrAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
-    { lbl:'ER 2026', val: m.erSimple>0 ? fmtPct(m.erSimple) : fmtPct(m.erAvg),
-      hint:'Formula Krein (attuale): (reazioni + commenti + diffusioni) / impressioni × 100.\nMisura il coinvolgimento puro, esclude i clic.\nSemplice: media delle ER per singolo post · Ponderata: (Σ reaz+comm+diff) / Σ impressioni',
+    { lbl:'ER formula 2026', val: m.erSimple>0 ? fmtPct(m.erSimple) : fmtPct(m.erAvg),
+      hint:'ER formula 2026 (Krein, attuale) = (reazioni + commenti + diffusioni) / impressioni × 100\nER formula 2025 (agenzia prec.) = (reazioni + commenti + diffusioni + clic) / impressioni × 100\n\nLa formula 2026 misura il coinvolgimento puro, esclude i clic.\nSemplice: media delle ER per singolo post · Ponderata: Σ eng / Σ impressioni',
       sub: m.erSimple>0 ? `Ponderata: ${fmtPct(m.erAvg)}` : null,
       prevVal: hasPrev && mp.erAvg>0 ? fmtPct(mp.erAvg) : null,
       delta: hasPrev && mp.erAvg>0 ? { txt:`${m.erAvg>=mp.erAvg?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg-mp.erAvg))} pp`, cls:m.erAvg>=mp.erAvg?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
-    { lbl:'ER 2025', val: m.erSimple25>0 ? fmtPct(m.erSimple25) : fmtPct(m.erAvg25),
-      hint:'Formula agenzia precedente: (reazioni + commenti + diffusioni + clic) / impressioni × 100.\nInclude i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSemplice: media delle ER per singolo post · Ponderata: (Σ reaz+comm+diff+clic) / Σ impressioni',
+    { lbl:'ER formula 2025', val: m.erSimple25>0 ? fmtPct(m.erSimple25) : fmtPct(m.erAvg25),
+      hint:'ER formula 2026 (Krein, attuale) = (reazioni + commenti + diffusioni) / impressioni × 100\nER formula 2025 (agenzia prec.) = (reazioni + commenti + diffusioni + clic) / impressioni × 100\n\nLa formula 2025 include i clic (traffico, non coinvolgimento) — mantenuta solo per confronto storico.\nSemplice: media delle ER per singolo post · Ponderata: Σ eng / Σ impressioni',
       sub: m.erSimple25>0 ? `Ponderata: ${fmtPct(m.erAvg25)}` : null,
       prevVal: hasPrev && mp.erAvg25>0 ? fmtPct(mp.erAvg25) : null,
       delta: hasPrev && mp.erAvg25>0 ? { txt:`${m.erAvg25>=mp.erAvg25?'↑':'↓'} ${nfDec.format(Math.abs(m.erAvg25-mp.erAvg25))} pp`, cls:m.erAvg25>=mp.erAvg25?'pos':'neg', pctTxt:'pp vs periodo prec.' } : null },
@@ -1818,8 +1818,8 @@ function renderPostDetail(){
         <h3>Metriche chiave (Totale)</h3>
         <div class="row-2" style="grid-template-columns:1fr 1fr;gap:12px;margin-bottom:0">
           <div class="metric-big"><div class="lbl">Impressioni</div><div class="val">${fmt(post.impressioni)}</div></div>
-          <div class="metric-big" title="ER 2026 (formula Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100"><div class="lbl">ER 2026</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni)/post.impressioni*100):'—'}</div></div>
-          <div class="metric-big" title="ER 2025 (formula agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100"><div class="lbl">ER 2025</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni+post.clic)/post.impressioni*100):'—'}</div></div>
+          <div class="metric-big" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100"><div class="lbl">ER formula 2026</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni)/post.impressioni*100):'—'}</div></div>
+          <div class="metric-big" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100"><div class="lbl">ER formula 2025</div><div class="val">${post.impressioni>0?fmtPct((post.reazioni+post.commenti+post.diffusioni+post.clic)/post.impressioni*100):'—'}</div></div>
           <div class="metric-big"><div class="lbl">CTR</div><div class="val">${fmtPct(post.ctr*100)}</div></div>
           <div class="metric-big"><div class="lbl">Reazioni</div><div class="val">${fmt(post.reazioni)}</div></div>
           <div class="metric-big"><div class="lbl">Commenti</div><div class="val">${fmt(post.commenti)}</div></div>
