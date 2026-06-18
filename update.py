@@ -251,14 +251,16 @@ def archive_new_file(src_path, kind):
 def find_week_pairs():
     """Restituisce lista di (date_str, content_path, followers_path) ordinate per data."""
     content_files = sorted(glob.glob(os.path.join(ARCHIVE, '????-??-??_content*.xls')))
-    pairs = []
+    # Dedup per data: se una settimana è stata ri-caricata (file con suffisso _HHMMSS),
+    # tieni solo l'ultimo file per data → evita di leggere due volte le stesse persone.
+    by_date = {}
     for cf in content_files:
         date = os.path.basename(cf)[:10]
         # Cerca il followers corrispondente per la stessa data
         ff_candidates = sorted(glob.glob(os.path.join(ARCHIVE, f'{date}_followers*.xls')))
         if ff_candidates:
-            pairs.append((date, cf, ff_candidates[-1]))
-    return pairs
+            by_date[date] = (date, cf, ff_candidates[-1])  # ultimo (sorted) vince
+    return [by_date[d] for d in sorted(by_date)]
 
 
 def build_rs_data(pairs, n_weeks=2):
@@ -307,14 +309,14 @@ def build_rs_data(pairs, n_weeks=2):
 
     # Storico demografico completo (uno snapshot per settimana archiviata) →
     # consente al dashboard di calcolare il delta "+X" rispetto all'inizio del range selezionato.
-    demographics_history = []
+    demo_hist_by_date = {}   # data → snapshot (una sola lettura per data, no doppio conteggio)
     for d_date, _cf, d_ff in pairs:
         try:
             _, demo_h, fbt_h = parse_followers(d_ff)
-            demographics_history.append({'data': d_date, 'demographics': demo_h, 'fan_base_totale': fbt_h})
+            demo_hist_by_date[d_date] = {'data': d_date, 'demographics': demo_h, 'fan_base_totale': fbt_h}
         except Exception as e:
             print(f'  WARN demo history {d_date}: {e}')
-    demographics_history.sort(key=lambda x: x['data'])
+    demographics_history = [demo_hist_by_date[d] for d in sorted(demo_hist_by_date)]
 
     return {
         'meta': {
