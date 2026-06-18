@@ -305,6 +305,17 @@ def build_rs_data(pairs, n_weeks=2):
     data_min = metriche_sorted[0]['data']  if metriche_sorted  else ''
     data_max = metriche_sorted[-1]['data'] if metriche_sorted  else ''
 
+    # Storico demografico completo (uno snapshot per settimana archiviata) →
+    # consente al dashboard di calcolare il delta "+X" rispetto all'inizio del range selezionato.
+    demographics_history = []
+    for d_date, _cf, d_ff in pairs:
+        try:
+            _, demo_h, fbt_h = parse_followers(d_ff)
+            demographics_history.append({'data': d_date, 'demographics': demo_h, 'fan_base_totale': fbt_h})
+        except Exception as e:
+            print(f'  WARN demo history {d_date}: {e}')
+    demographics_history.sort(key=lambda x: x['data'])
+
     return {
         'meta': {
             'ultimo_aggiornamento': ultimo_aggiornamento or data_max,
@@ -319,6 +330,7 @@ def build_rs_data(pairs, n_weeks=2):
         'followers_daily':    followers_sorted,
         'demographics':       demographics,
         'demographics_prev':  demographics_prev,
+        'demographics_history': demographics_history,
     }
 
 
@@ -1678,15 +1690,15 @@ def _sniff_csv_kind(path):
 
 def process_inbox():
     """
-    Scansiona inbox/, identifica e archivia i file LinkedIn.
+    Scansiona inbox/rs-italia/, identifica e archivia i file LinkedIn.
     Restituisce dict con i file trovati e dove sono stati archiviati.
     """
-    os.makedirs(INBOX, exist_ok=True)
+    os.makedirs(INBOX_RS, exist_ok=True)
     found = {'content': None, 'followers': None, 'campaign': None, 'unknown': []}
 
     entries = [
-        os.path.join(INBOX, f) for f in os.listdir(INBOX)
-        if not f.startswith('.') and os.path.isfile(os.path.join(INBOX, f))
+        os.path.join(INBOX_RS, f) for f in os.listdir(INBOX_RS)
+        if not f.startswith('.') and os.path.isfile(os.path.join(INBOX_RS, f))
     ]
 
     if not entries:
@@ -1787,7 +1799,7 @@ def main():
             for date, cf, ff in pairs:
                 print(f'  {date}  {os.path.basename(cf)} + {os.path.basename(ff)}')
 
-            rs_data = build_rs_data(pairs, n_weeks=4)
+            rs_data = build_rs_data(pairs, n_weeks=len(pairs))  # tutte le settimane → storico completo
             m = rs_data['meta']
             print(f'  LinkedIn: {m["data_min"]} → {m["data_max"]} · {len(rs_data["metriche"])} giorni · fan base {m["fan_base_totale"]:,}')
             update_history(pairs)

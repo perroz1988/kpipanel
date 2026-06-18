@@ -1290,11 +1290,21 @@ function renderGenerale(r){
 
 /* ---------- TAB 2: AUDIENCE ---------- */
 function renderAudience(){
-  const d  = RS_DATA.demographics;
-  const dp = RS_DATA.demographics_prev || null;
-  const fanTot     = RS_DATA.meta.fan_base_totale;
-  const fanTotPrev = RS_DATA.meta.fan_base_totale_prev || 0;
+  // Baseline dinamico: snapshot demografico più vicino all'INIZIO del range selezionato.
+  // "+X" per ogni parametro = snapshot a fine range − snapshot a inizio range.
+  const rAudR = getRange();
+  const hist = (RS_DATA.demographics_history||[]).slice().sort((a,b)=>a.data.localeCompare(b.data));
+  const snapAtOrBefore = (iso, fbIdx) => { let c=null; for(const s of hist){ if(s.data<=iso) c=s; } return c || (hist.length?hist[fbIdx]:null); };
+  const curSnap  = snapAtOrBefore(rAudR.to,  hist.length-1);   // stato a fine periodo
+  const baseSnap = snapAtOrBefore(rAudR.from, 0);              // stato a inizio periodo
+  const useHist  = !!(curSnap && baseSnap);
+
+  const d  = useHist ? curSnap.demographics : RS_DATA.demographics;
+  const dp = useHist ? (baseSnap.data!==curSnap.data ? baseSnap.demographics : null) : (RS_DATA.demographics_prev || null);
+  const fanTot     = useHist ? curSnap.fan_base_totale : RS_DATA.meta.fan_base_totale;
+  const fanTotPrev = useHist ? (baseSnap.data!==curSnap.data ? baseSnap.fan_base_totale : 0) : (RS_DATA.meta.fan_base_totale_prev || 0);
   const hasPrev = !!dp;
+  const baseLabel = (useHist && baseSnap.data!==curSnap.data) ? `inizio periodo · ${fmtDate(baseSnap.data)}` : 'periodo prec.';
 
   // Helper: delta pp con colore
   function ppDelta(curr, prev){
@@ -1317,48 +1327,40 @@ function renderAudience(){
     return ` <span style="color:${cls};font-size:11px;font-weight:700">${arr} ${sign}${fmt(diff)} (${sign}${nfDec.format(pct)}%)</span>`;
   }
 
-  // Nuovi follower: usa followers_daily (più preciso degli snapshot demografici che hanno lag)
-  const allFol  = RS_DATA.followers_daily.slice().sort((a,b)=>a.data.localeCompare(b.data));
-  const half    = Math.ceil(allFol.length / 2);
-  const folCurr = allFol.slice(half).reduce((s,x)=>s+x.tot, 0);
-  const folPrev = allFol.slice(0, half).reduce((s,x)=>s+x.tot, 0);
-  const folDiff = folCurr - folPrev;
-  const folSign = folDiff >= 0 ? '+' : '';
-  const folCls  = folDiff >= 0 ? 'var(--pos)' : 'var(--neg)';
-  const folArr  = folDiff >= 0 ? '↑' : '↓';
-
   // KPI row audience
-  const rAud   = getRange();
+  const rAud   = rAudR;
   const fAud   = followersIn(rAud);
   const fAudP  = followersIn(getPrevRange(rAud));
   const newFolPeriod  = fAud.reduce((s,x)=>s+x.tot,0);
   const newFolPeriodP = fAudP.reduce((s,x)=>s+x.tot,0);
   const hasPrevAud    = fAudP.length > 0;
   const deltaNF  = hasPrevAud ? newFolPeriod - newFolPeriodP : null;
-  const fanTotPrevVal = RS_DATA.meta.fan_base_totale_prev || 0;
-  const cresPct  = fanTotPrevVal > 0 ? ((RS_DATA.meta.fan_base_totale - fanTotPrevVal) / fanTotPrevVal * 100) : null;
+  const fanGrow  = hasPrev ? (fanTot - fanTotPrev) : null;       // +X fan base dall'inizio del range
+  const cresPct  = (hasPrev && fanTotPrev > 0) ? (fanGrow / fanTotPrev * 100) : null;
   document.getElementById('kpiAudience').innerHTML = [
     { lbl:'Fan Base Totale',
-      val: fmt(RS_DATA.meta.fan_base_totale),
-      prevVal: fanTotPrevVal > 0 ? fmt(fanTotPrevVal) : null,
-      delta: fanTotPrevVal > 0 ? deltaCard(RS_DATA.meta.fan_base_totale, fanTotPrevVal) : null },
+      val: fmt(fanTot),
+      prevLbl: baseLabel,
+      prevVal: hasPrev ? fmt(fanTotPrev) : null,
+      delta: fanGrow !== null ? { txt:`${fanGrow>=0?'↑ +':'↓ '}${fmt(fanGrow)}`, cls:fanGrow>=0?'pos':'neg', pctTxt:'dall\'inizio del periodo' } : null },
     { lbl:'Nuovi Follower nel Periodo',
       val: `+${fmt(newFolPeriod)}`,
+      prevLbl: 'periodo prec.',
       prevVal: hasPrevAud ? `+${fmt(newFolPeriodP)}` : null,
       delta: deltaNF !== null ? { txt:`${deltaNF>=0?'↑':'↓'} ${deltaNF>=0?'+':''}${fmt(deltaNF)}`, cls:deltaNF>=0?'pos':'neg', pctTxt:'vs periodo prec.' } : null },
     { lbl:'Crescita % Fan Base',
-      val: cresPct !== null ? `+${nfDec.format(cresPct)}%` : '—',
+      val: cresPct !== null ? `${cresPct>=0?'+':''}${nfDec.format(cresPct)}%` : '—',
       prevVal: null,
-      delta: cresPct !== null ? { txt: cresPct>=0?'↑ in crescita':'↓ in calo', cls: cresPct>=0?'pos':'neg', pctTxt:'rispetto al periodo precedente' } : null },
+      delta: cresPct !== null ? { txt: cresPct>=0?'↑ in crescita':'↓ in calo', cls: cresPct>=0?'pos':'neg', pctTxt:'dall\'inizio del periodo' } : null },
   ].map(c=>{
-    const prev  = c.prevVal != null ? `<div class="prev-val">periodo prec. <b>${c.prevVal}</b></div>` : '';
+    const prev  = c.prevVal != null ? `<div class="prev-val">${c.prevLbl||'periodo prec.'} <b>${c.prevVal}</b></div>` : '';
     const delta = c.delta ? `<div class="delta ${c.delta.cls}">${c.delta.txt} <span style="color:var(--text-3);font-weight:400">· ${c.delta.pctTxt}</span></div>` : '';
     return `<div class="kpi"><div class="label">${c.lbl}</div><div class="value">${c.val}</div>${prev}${delta}</div>`;
   }).join('');
 
   const fanDeltaHtml = hasPrev
-    ? `nuovi sett. corrente <b style="color:var(--text)">+${fmt(folCurr)}</b> &nbsp;·&nbsp; sett. prec. <b style="color:var(--text-2)">+${fmt(folPrev)}</b> &nbsp;<span style="color:${folCls};font-weight:700">${folArr} ${folSign}${fmt(folDiff)}</span>`
-    : `nuovi questa settimana: <b>+${fmt(folCurr)}</b>`;
+    ? `${baseLabel} <b style="color:var(--text-2)">${fmt(fanTotPrev)}</b> &nbsp;<span style="color:${fanGrow>=0?'var(--pos)':'var(--neg)'};font-weight:700">${fanGrow>=0?'↑ +':'↓ '}${fmt(fanGrow)}</span>`
+    : `fan base attuale`;
   document.getElementById('fanTot').innerHTML =
     `${fmt(fanTot)} <span style="font-size:12px;font-weight:400;color:var(--text-2);margin-left:8px">${fanDeltaHtml}</span>`;
 
@@ -1387,9 +1389,9 @@ function renderAudience(){
   document.getElementById('pctManager').textContent = nfDec.format(managerPct)+'%';
   document.getElementById('pctCLevel').textContent  = nfDec.format(cLevelPct)+'%';
   document.getElementById('metaManager').innerHTML =
-    `${fmt(manager)} su ${fmt(totAnz)} follower${hasPrev ? `<br><span class="prev-val">sett. prec. <b>${nfDec.format(managerPctP)}%</b>${ppDelta(managerPct, managerPctP)}</span>` : ''}`;
+    `${fmt(manager)} su ${fmt(totAnz)} follower${hasPrev ? `<br><span class="prev-val">${baseLabel} <b>${nfDec.format(managerPctP)}%</b>${ppDelta(managerPct, managerPctP)}</span>` : ''}`;
   document.getElementById('metaCLevel').innerHTML =
-    `CXO + Direttore + VP + Proprietario = ${fmt(cLevel)}${hasPrev ? `<br><span class="prev-val">sett. prec. <b>${nfDec.format(cLevelPctP)}%</b>${ppDelta(cLevelPct, cLevelPctP)}</span>` : ''}`;
+    `CXO + Direttore + VP + Proprietario = ${fmt(cLevel)}${hasPrev ? `<br><span class="prev-val">${baseLabel} <b>${nfDec.format(cLevelPctP)}%</b>${ppDelta(cLevelPct, cLevelPctP)}</span>` : ''}`;
 
   // ---- BigCo ----
   const bigKeys = ['201-500','501-1000','1001-5000','5001-10000','10001+'];
@@ -1407,7 +1409,7 @@ function renderAudience(){
   drawDonut('donutBigCo', [bigCo, totDim-bigCo], ['#0A66C2','#E0DFDC']);
   document.getElementById('pctBigCo').textContent = nfDec.format(bigCoPct)+'%';
   document.getElementById('metaBigCo').innerHTML =
-    `${fmt(bigCo)} su ${fmt(totDim)} con dimensione classificata${hasPrev ? `<br><span class="prev-val">sett. prec. <b>${nfDec.format(bigCoPctP)}%</b>${ppDelta(bigCoPct, bigCoPctP)}</span>` : ''}`;
+    `${fmt(bigCo)} su ${fmt(totDim)} con dimensione classificata${hasPrev ? `<br><span class="prev-val">${baseLabel} <b>${nfDec.format(bigCoPctP)}%</b>${ppDelta(bigCoPct, bigCoPctP)}</span>` : ''}`;
 
   // ---- Liste con delta ----
   function renderList(elId, arr, total, prevArr){
