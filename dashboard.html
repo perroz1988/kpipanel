@@ -1342,7 +1342,9 @@ function renderAudience(){
       val: fmt(fanTot),
       prevLbl: baseLabel,
       prevVal: hasPrev ? fmt(fanTotPrev) : null,
-      delta: fanGrow !== null ? { txt:`${fanGrow>=0?'↑ +':'↓ '}${fmt(fanGrow)}`, cls:fanGrow>=0?'pos':'neg', pctTxt:'dall\'inizio del periodo' } : null },
+      delta: fanGrow !== null
+        ? { txt:`${fanGrow>=0?'↑ +':'↓ '}${fmt(fanGrow)} netto · +${fmt(newFolPeriod)} nuovi`, cls:fanGrow>=0?'pos':'neg', pctTxt:'netto = saldo snapshot · nuovi = follow acquisiti (giornaliero)' }
+        : { txt:`+${fmt(newFolPeriod)} nuovi`, cls:'pos', pctTxt:'follow acquisiti nel periodo (giornaliero)' } },
     { lbl:'Nuovi Follower nel Periodo',
       val: `+${fmt(newFolPeriod)}`,
       prevLbl: 'periodo prec.',
