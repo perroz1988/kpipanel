@@ -653,16 +653,18 @@ fetch('/api/auth/verify')
     <div class="kpi-row" id="kpiContenuti" style="grid-template-columns:repeat(6,1fr)"></div>
     <div class="card">
       <h3>Lista Post <span class="hint">click su una riga per il drill-down</span></h3>
+      <div style="margin:0 0 10px"><input type="search" id="postsSearch" placeholder="Cerca nei post…" autocomplete="off" style="width:100%;max-width:340px;padding:7px 11px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:13px"></div>
       <div style="overflow-x:auto"><table class="tbl" id="postsTable">
         <thead><tr>
           <th data-c="thumb" style="width:40px"></th>
-          <th class="sortable" data-c="tipo">Tipo <span class="arr">↕</span></th>
+          <th class="sortable" data-c="data">Data <span class="arr">↕</span></th>
           <th class="sortable" data-c="titolo">Anteprima / Post <span class="arr">↕</span></th>
           <th class="sortable num" data-c="impressioni">Impressioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reach">Reach <span class="arr">↕</span></th>
           <th class="sortable num" data-c="er" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER formula 2026 <span class="arr">↕</span></th>
           <th class="sortable num" data-c="er25" title="ER formula 2026 (Krein) = (Reazioni + Commenti + Diffusioni) / Impressioni × 100&#10;ER formula 2025 (agenzia prec.) = (Reazioni + Commenti + Diffusioni + Clic) / Impressioni × 100">ER formula 2025 <span class="arr">↕</span></th>
           <th class="sortable num" data-c="ctr">CTR <span class="arr">↕</span></th>
+          <th class="sortable num" data-c="clic">Click <span class="arr">↕</span></th>
           <th class="sortable num" data-c="reazioni">Reazioni <span class="arr">↕</span></th>
           <th class="sortable num" data-c="commenti">Commenti <span class="arr">↕</span></th>
           <th class="sortable num" data-c="diffusioni">Diffusioni <span class="arr">↕</span></th>
@@ -949,6 +951,7 @@ const state = {
   customFrom:null, customTo:null,
   contentFilter:'all', // all | org | spon
   postsSort:{ col:'data', dir:'desc' },
+  postsQuery:'',
   selectedPostLink:null,
 };
 const charts = {};
@@ -1097,6 +1100,10 @@ document.querySelectorAll('#postsTable th.sortable').forEach(th=>{
     renderPosts();
   });
 });
+const postsSearchEl = document.getElementById('postsSearch');
+if(postsSearchEl){
+  postsSearchEl.addEventListener('input', e=>{ state.postsQuery = e.target.value; renderPosts(); });
+}
 document.querySelectorAll('#contFilter button').forEach(b=>{
   b.addEventListener('click', ()=>{
     document.querySelectorAll('#contFilter button').forEach(x=>x.classList.remove('active'));
@@ -1555,7 +1562,8 @@ function renderContenuti(r){
 }
 
 function renderPosts(){
-  const pool = state._postsPool || [];
+  const q = (state.postsQuery||'').toLowerCase().trim();
+  const pool = (state._postsPool || []).filter(p => !q || (p.titolo||'').toLowerCase().includes(q));
   const { col, dir } = state.postsSort;
   const sign = dir==='asc'?1:-1;
 
@@ -1620,6 +1628,7 @@ function renderPosts(){
       <td class="num">${fmtPct(agg.er)}</td>
       <td class="num">${fmtPct(agg.er25)}</td>
       <td class="num">${fmtPct(agg.ctr_pct)}</td>
+      <td class="num">${fmt(agg.ctr)}</td>
       <td class="num">${fmt(agg.reazioni)}</td>
       <td class="num">${fmt(agg.commenti)}</td>
       <td class="num">${fmt(agg.diffusioni)}</td>
@@ -1639,6 +1648,7 @@ function renderPosts(){
         <td class="num">${er}</td>
         <td class="num">${er25}</td>
         <td class="num">${fmtPct(p.ctr*100)}</td>
+        <td class="num">${fmt(p.clic)}</td>
         <td class="num">${fmt(p.reazioni)}</td>
         <td class="num">${fmt(p.commenti)}</td>
         <td class="num">${fmt(p.diffusioni)}</td>
@@ -1646,7 +1656,7 @@ function renderPosts(){
     }
   }
 
-  document.getElementById('postsBody').innerHTML = html || `<tr><td colspan="11" style="text-align:center;color:var(--text-2);padding:24px">Nessun post nel periodo selezionato.</td></tr>`;
+  document.getElementById('postsBody').innerHTML = html || `<tr><td colspan="12" style="text-align:center;color:var(--text-2);padding:24px">${q ? 'Nessun post corrisponde alla ricerca.' : 'Nessun post nel periodo selezionato.'}</td></tr>`;
 
   // Row click → drill-down
   document.querySelectorAll('#postsBody tr.post-row').forEach(tr=>{
