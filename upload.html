@@ -110,12 +110,24 @@ pre.log {
 }
 pre.log.visible { display: block; }
 
-.folder { margin-top: 10px; }
-.folder > .fname {
-  font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase;
-  letter-spacing: .4px; padding: 6px 0 2px;
-}
 .empty { font-size: 13px; color: var(--text-3); padding: 8px 0; }
+
+.toolbar { margin: 2px 0 10px; }
+input.search {
+  flex: 1; min-width: 200px; padding: 8px 12px; font-size: 13px; font-family: inherit;
+  color: var(--text); background: var(--card); border: 1px solid var(--border);
+  border-radius: 7px; outline: none; transition: border-color .15s, box-shadow .15s;
+}
+input.search:focus { border-color: var(--accent); box-shadow: 0 0 0 3px oklch(44% 0.155 265 / 0.12); }
+select.sort {
+  padding: 8px 10px; font-size: 13px; font-family: inherit; color: var(--text-2);
+  background: var(--card); border: 1px solid var(--border); border-radius: 7px; cursor: pointer;
+}
+.fchip {
+  font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px;
+  color: var(--text-2); background: oklch(94% 0.006 88); border: 1px solid var(--border);
+  border-radius: 99px; padding: 2px 8px; flex-shrink: 0;
+}
 .badge {
   display: inline-block; min-width: 20px; text-align: center; font-size: 11px;
   font-weight: 700; color: #fff; background: var(--accent); border-radius: 99px;
@@ -144,7 +156,7 @@ pre.log.visible { display: block; }
   <div class="card">
     <h2>1 · Carica i file <small>XLS LinkedIn · CSV campagne / Meta</small></h2>
 
-    <div class="tabs">
+    <div class="tabs" id="upTabs">
       <button class="tab active" data-client="rs-italia">RS Italia</button>
       <button class="tab" data-client="optimedia">Optimedia</button>
     </div>
@@ -185,6 +197,21 @@ pre.log.visible { display: block; }
   <!-- ── ARCHIVIO ───────────────────────────────────────────── -->
   <div class="card">
     <h2>Archivio storico<span class="badge" id="archCount">0</span></h2>
+    <div class="tabs" id="archTabs">
+      <button class="tab active" data-a="rs-italia">RS Italia</button>
+      <button class="tab" data-a="optimedia">Optimedia</button>
+      <button class="tab" data-a="altro" id="archTabAltro" style="display:none">Altro</button>
+    </div>
+    <div class="row toolbar">
+      <input class="search" id="archSearch" type="search" placeholder="Cerca file… (es. 2026-06, keye, campagne)">
+      <select class="sort" id="archSort" title="Ordina">
+        <option value="date-desc">Data · più recenti</option>
+        <option value="date-asc">Data · più vecchi</option>
+        <option value="name-asc">Nome · A→Z</option>
+        <option value="name-desc">Nome · Z→A</option>
+        <option value="size-desc">Dimensione · maggiore</option>
+      </select>
+    </div>
     <div id="archive"></div>
   </div>
 
@@ -211,8 +238,8 @@ const HINTS = {
   'optimedia': 'Optimedia: CSV esportati da Meta Business Suite / XLS LinkedIn — scegli la piattaforma',
 };
 
-document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+document.querySelectorAll('#upTabs .tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('#upTabs .tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
   client = t.dataset.client;
   document.getElementById('platform').classList.toggle('visible', client === 'optimedia');
@@ -326,42 +353,88 @@ runBtn.addEventListener('click', async () => {
   runBtn.textContent = 'Elabora ora';
 });
 
-/* ── archivio ──────────────────────────────────────────────── */
+/* ── archivio: tab cliente + cerca + ordina ────────────────── */
+let archFiles = [];
+let archTab = 'rs-italia';
+
+function archClient(path) {
+  if (path.startsWith('rs-italia/')) return 'rs-italia';
+  if (path.startsWith('optimedia/')) return 'optimedia';
+  return 'altro';
+}
+
+function archDate(f) {
+  // data dal nome file (prefisso YYYY-MM-DD), altrimenti updated_at
+  const m = f.path.split('/').pop().match(/\d{4}-\d{2}-\d{2}/);
+  return m ? m[0] : (f.updated || '').slice(0, 10);
+}
+
+const ARCH_SORTS = {
+  'date-desc': (a, b) => archDate(b).localeCompare(archDate(a)) || a.path.localeCompare(b.path),
+  'date-asc':  (a, b) => archDate(a).localeCompare(archDate(b)) || a.path.localeCompare(b.path),
+  'name-asc':  (a, b) => a.path.split('/').pop().localeCompare(b.path.split('/').pop()),
+  'name-desc': (a, b) => b.path.split('/').pop().localeCompare(a.path.split('/').pop()),
+  'size-desc': (a, b) => b.size - a.size,
+};
+
 async function loadArchive() {
   const r = await fetch('/api/archive?bucket=kpi-archive');
   const { files = [] } = await r.json();
-  const box = document.getElementById('archive');
-  document.getElementById('archCount').textContent = files.length;
-
-  const groups = {};
-  for (const f of files) {
-    const dir = f.path.split('/').slice(0, -1).join('/') || '(root)';
-    (groups[dir] ??= []).push(f);
-  }
-
-  box.innerHTML = '';
-  for (const dir of Object.keys(groups).sort()) {
-    const div = document.createElement('div');
-    div.className = 'folder';
-    div.innerHTML = `<div class="fname"></div><ul class="files"></ul>`;
-    div.querySelector('.fname').textContent = dir;
-    const ul = div.querySelector('ul');
-    for (const f of groups[dir].sort((a, b) => b.path.localeCompare(a.path))) {
-      const li = document.createElement('li');
-      li.innerHTML = `<span class="name"></span><span class="meta"></span><a href="#">scarica</a>`;
-      li.querySelector('.name').textContent = f.path.split('/').pop();
-      li.querySelector('.meta').textContent = (f.size/1024).toFixed(0) + ' KB';
-      li.querySelector('a').addEventListener('click', async e => {
-        e.preventDefault();
-        const r = await fetch('/api/archive?bucket=kpi-archive&download=' + encodeURIComponent(f.path));
-        const j = await r.json();
-        if (j.url) location.href = j.url;
-      });
-      ul.appendChild(li);
-    }
-    box.appendChild(div);
-  }
+  archFiles = files;
+  renderArchive();
 }
+
+function renderArchive() {
+  const q    = document.getElementById('archSearch').value.trim().toLowerCase();
+  const sort = document.getElementById('archSort').value;
+  const box  = document.getElementById('archive');
+
+  // il tab "Altro" appare solo se ci sono file fuori da rs-italia/ e optimedia/
+  const hasAltro = archFiles.some(f => archClient(f.path) === 'altro');
+  document.getElementById('archTabAltro').style.display = hasAltro ? '' : 'none';
+
+  const rows = archFiles
+    .filter(f => archClient(f.path) === archTab)
+    .filter(f => !q || f.path.toLowerCase().includes(q))
+    .sort(ARCH_SORTS[sort] || ARCH_SORTS['date-desc']);
+
+  document.getElementById('archCount').textContent = rows.length;
+  box.innerHTML = '';
+
+  if (!rows.length) {
+    box.innerHTML = `<div class="empty">${q ? 'Nessun file corrisponde alla ricerca.' : 'Nessun file in archivio per questo cliente.'}</div>`;
+    return;
+  }
+
+  const ul = document.createElement('ul');
+  ul.className = 'files';
+  for (const f of rows) {
+    const sub = f.path.split('/').slice(1, -1).join('/');   // sottocartella senza prefisso cliente
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="name"></span><span class="fchip"></span><span class="meta"></span><a href="#">scarica</a>`;
+    li.querySelector('.name').textContent = f.path.split('/').pop();
+    const chip = li.querySelector('.fchip');
+    if (sub) chip.textContent = sub; else chip.remove();
+    li.querySelector('.meta').textContent = `${archDate(f) || '—'} · ${(f.size/1024).toFixed(0)} KB`;
+    li.querySelector('a').addEventListener('click', async e => {
+      e.preventDefault();
+      const r = await fetch('/api/archive?bucket=kpi-archive&download=' + encodeURIComponent(f.path));
+      const j = await r.json();
+      if (j.url) location.href = j.url;
+    });
+    ul.appendChild(li);
+  }
+  box.appendChild(ul);
+}
+
+document.querySelectorAll('#archTabs .tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('#archTabs .tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  archTab = t.dataset.a;
+  renderArchive();
+}));
+document.getElementById('archSearch').addEventListener('input', renderArchive);
+document.getElementById('archSort').addEventListener('change', renderArchive);
 
 loadInbox();
 loadArchive();
