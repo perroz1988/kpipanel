@@ -222,6 +222,10 @@ canvas.trend-canvas { display:block; width:100%; }
   .app { padding:0 !important; }
 }
 </style>
+<style>
+  html:not(.is-admin) #missingBanner { display:none !important; }
+  html:not(.is-admin) #adminBtn { display:none !important; }
+</style>
 <script>
 /* ---- Auth veil ---- */
 fetch('/api/auth/verify')
@@ -231,6 +235,7 @@ fetch('/api/auth/verify')
     const allowed = u.role === 'admin' || u.dashboard === 'optimedia';
     if (!allowed) { location.replace('/login'); return; }
     document.getElementById('auth-veil').remove();
+    if (u.role === 'admin') document.documentElement.classList.add('is-admin');
   })
   .catch(() => location.replace('/login?next=' + encodeURIComponent(location.pathname)));
 </script>
@@ -244,12 +249,13 @@ fetch('/api/auth/verify')
       <div class="brand-logo">OM</div>
       <div>
         <h1>Optimedia – Social Dashboard</h1>
-        <div class="sub">Facebook &amp; Instagram &amp; LinkedIn &middot; Feb 12 – Jun 9 2026</div>
+        <div class="sub">Facebook &amp; Instagram &amp; LinkedIn &middot; <span id="subPeriod">—</span></div>
       </div>
     </div>
     <div class="update">
       <div>Ultimo aggiornamento</div>
       <div><b id="lastUpdate">—</b></div>
+      <button class="logout-btn" id="adminBtn" title="Apri l'area admin: carica gli export ed elabora i nuovi dati" onclick="window.open('/upload','_blank')">&#9881; Area admin</button>
       <button class="logout-btn" id="logoutBtn">&#9211; Esci</button>
     </div>
   </div>
@@ -595,11 +601,11 @@ function inRange(iso, r){ return iso >= r.from && iso <= r.to; }
   const missing = [];
   const fb = OPTIMEDIA_DATA?.facebook?.metriche || [];
   const ig = OPTIMEDIA_DATA?.instagram?.metriche || [];
-  if(!fb.length) missing.push('Facebook CSV — scarica da Meta Business Suite → <code>inbox/optimedia/Facebook/</code> (Views, Viewers, Interactions, Follows, Visits, Link clicks, Audience FB)');
-  if(!ig.length) missing.push('Instagram CSV — scarica da Meta Business Suite → <code>inbox/optimedia/Instagram/</code> (Views, Reach, Interactions, Follows, Visits, Link clicks, Audience IG)');
+  if(!fb.length) missing.push('Facebook CSV — scarica da Meta Business Suite e caricalo nell\'<a href="/upload">Area admin</a> → Optimedia → Facebook (Views, Viewers, Interactions, Follows, Visits, Link clicks, Audience FB)');
+  if(!ig.length) missing.push('Instagram CSV — scarica da Meta Business Suite e caricalo nell\'<a href="/upload">Area admin</a> → Optimedia → Instagram (Views, Reach, Interactions, Follows, Visits, Link clicks, Audience IG)');
   const aggiornato = OPTIMEDIA_DATA?.meta?.aggiornato;
   if(aggiornato && (Date.now() - new Date(aggiornato)) > 35 * 86400000)
-    missing.push(`Dati non aggiornati da più di 35 giorni (ultimo: ${aggiornato}) — carica nuovi export in inbox/optimedia/`);
+    missing.push(`Dati non aggiornati da più di 35 giorni (ultimo: ${aggiornato}) — carica i nuovi export nell'<a href="/upload">Area admin</a> → Optimedia e premi «Elabora ora»`);
   if(missing.length){
     const b = document.getElementById('missingBanner');
     const l = document.getElementById('missingList');
@@ -1542,6 +1548,8 @@ function render(){
   const days = fbIn(r).length || igIn(r).length;
   document.getElementById('periodRange').textContent = 'Range: '+fmtDate(r.from)+' → '+fmtDate(r.to)+' · '+days+' giorni';
   document.getElementById('lastUpdate').textContent  = fmtDate(OPTIMEDIA_DATA.meta.aggiornato);
+  const _sp = document.getElementById('subPeriod');
+  if (_sp) _sp.textContent = fmtDate(OPTIMEDIA_DATA.meta.data_min) + ' – ' + fmtDate(OPTIMEDIA_DATA.meta.data_max);
 
   if(state.tab==='overview')    renderOverview(r, prev);
   if(state.tab==='settimanale') renderSettimanale();

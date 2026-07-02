@@ -394,6 +394,7 @@ body.print-mode .row-4, body.print-mode .card, body.print-mode .kpi { break-insi
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <style id="auth-veil">html{visibility:hidden}</style>
+<style>html:not(.is-admin) #missingBanner{display:none!important}</style>
 <script>
 fetch('/api/auth/verify')
   .then(r => { if (!r.ok) throw 0; return r.json(); })
@@ -404,6 +405,7 @@ fetch('/api/auth/verify')
 
     document.getElementById('auth-veil').remove();
     const isAdmin = u.role === 'admin';
+    if (isAdmin) document.documentElement.classList.add('is-admin');
     if (window._setExportAdmin) window._setExportAdmin(isAdmin);
     if (!isAdmin) {
       document.getElementById('guide').style.display = 'none';
@@ -432,7 +434,7 @@ fetch('/api/auth/verify')
       <div><b id="lastUpdate">—</b></div>
       <div style="margin-top:8px;display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap">
         <button class="print-cta" id="printBtn" title="Genera un PDF multipagina con tutte le tab e il periodo selezionato">⎙ Stampa PDF</button>
-        <button class="refresh-cta-sm" id="refreshTopBtn" title="Rigenera la dashboard con i nuovi Excel nella cartella">↻ Aggiorna dati</button>
+        <button class="refresh-cta-sm" id="refreshTopBtn" title="Apri l'area admin: carica i file esportati ed elabora i nuovi dati">⚙ Area admin</button>
         <button class="export-html-btn" id="exportHtmlBtn" title="Esporta come pagina HTML statica">⬇ Esporta HTML</button>
         <button class="logout-btn" id="logoutBtn" title="Esci">⏻ Esci</button>
       </div>
@@ -450,7 +452,7 @@ fetch('/api/auth/verify')
     <div class="guide-head" id="guideHead" role="button" tabindex="0" aria-expanded="false" aria-controls="guideBody">
       <div class="left">
         <div class="icon">i</div>
-        <div class="ttl">Come aggiornare il dashboard <small>Workflow settimanale in 4 passi · click per aprire</small></div>
+        <div class="ttl">Come aggiornare il dashboard <small>Workflow settimanale in 4 passi · tutto online, senza terminale · click per aprire</small></div>
       </div>
       <div class="chev">⌄</div>
     </div>
@@ -468,43 +470,42 @@ fetch('/api/auth/verify')
           <ul>
             <li>Reports → Esporta performance → periodo: ultima settimana → CSV</li>
           </ul>
-          <div class="note">Il nome dei file non importa: lo script li riconosce dal contenuto.</div>
+          <div class="note">Il nome dei file non importa: il motore li riconosce dal contenuto.</div>
         </div>
 
         <div class="guide-step">
-          <h4><span class="num">2</span> Metti i file in <code>inbox/</code></h4>
-          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">Trascina qui tutti i file scaricati:</p>
-          <div class="path"><span>inbox/</span><button onclick="navigator.clipboard.writeText('inbox/')">Copia percorso</button></div>
+          <h4><span class="num">2</span> Carica i file nell'Area admin</h4>
+          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">Apri l'<b>Area admin</b> e trascina tutti i file scaricati nella sezione <b>RS Italia</b>:</p>
+          <div class="path"><span>kpipanel.vercel.app/upload</span><button onclick="window.open('/upload','_blank')">Apri</button></div>
           <ul style="margin-top:8px">
             <li>2 XLS LinkedIn (content + followers)</li>
-            <li>1 CSV Campaign Manager</li>
-            <li>Qualsiasi nome va bene — lo script distingue i tipi da solo</li>
+            <li>1 CSV Campaign Manager (+ eventuale Creative Performance)</li>
+            <li>Qualsiasi nome va bene — il motore distingue i tipi da solo</li>
           </ul>
-          <div class="note">Dopo l'update i file vengono spostati in <code>archive/</code> automaticamente.</div>
+          <div class="note">Funziona da qualsiasi computer: niente cartelle locali, niente terminale.</div>
         </div>
 
         <div class="guide-step">
-          <h4><span class="num">3</span> Lancia il comando unico</h4>
-          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">Apri il Terminale nella cartella del progetto:</p>
-          <div class="path"><span>python3 update.py --keye</span><button onclick="navigator.clipboard.writeText('python3 update.py --keye');showToast('<b>Comando copiato!</b> Incollalo nel Terminale nella cartella del progetto.','success')">Copia</button></div>
+          <h4><span class="num">3</span> Premi «Elabora ora»</h4>
+          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">Sempre nell'Area admin, un click sul pulsante <b>Elabora ora</b>:</p>
           <ul style="margin-top:8px">
-            <li>Rileva e archivia i file da <code>inbox/</code></li>
+            <li>Riconosce e archivia i file caricati nell'archivio cloud</li>
             <li>Scarica lo snapshot Keye via API</li>
-            <li>Rigenera <code>dashboard.html</code> con tutti i dati aggiornati</li>
+            <li>Rigenera tutti i dati della dashboard (~30–60 secondi)</li>
           </ul>
           <div class="refresh-row" style="margin-top:12px">
-            <div class="icon-big">↻</div>
+            <div class="icon-big">⚙</div>
             <div class="txt">
-              <b>Copia il comando update</b>
-              <span>Eseguilo nel terminale nella cartella del progetto</span>
+              <b>Apri l'Area admin</b>
+              <span>Upload file · Elabora · Archivio storico</span>
             </div>
-            <button class="refresh-cta" id="refreshMainBtn" onclick="navigator.clipboard.writeText('python3 update.py --keye');showToast('<b>Comando copiato!</b>','success')"><span class="spin-ic">↻</span> Copia</button>
+            <button class="refresh-cta" id="refreshMainBtn"><span class="spin-ic">↗</span> Apri</button>
           </div>
         </div>
 
         <div class="guide-step">
-          <h4><span class="num">4</span> Ricarica il browser</h4>
-          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">Hard refresh per vedere i dati aggiornati:</p>
+          <h4><span class="num">4</span> Ricarica la dashboard</h4>
+          <p style="margin:0 0 8px;color:var(--text-2);font-size:13px;line-height:1.5">A elaborazione finita, ricarica questa pagina per vedere i dati aggiornati:</p>
           <div class="path"><span>Cmd + Shift + R</span></div>
           <p style="margin:12px 0 6px;color:var(--text-2);font-size:13px;font-weight:600">Come funzionano i filtri:</p>
           <ul>
@@ -513,7 +514,7 @@ fetch('/api/auth/verify')
             <li><b>Campagne</b>: si filtrano per data come le altre tab</li>
             <li><b>Audience e Brand Listening</b>: sempre lo snapshot più recente</li>
           </ul>
-          <div class="note">Struttura archivio: <code>archive/linkedin/</code> · <code>archive/keye/</code> · <code>archive/</code> per CSV campagne · <code>archive/pdfs/</code> per i PDF.</div>
+          <div class="note">L'archivio storico è su cloud (Supabase) e si consulta in fondo all'Area admin: <code>rs-italia/linkedin</code> · <code>rs-italia/keye</code> · <code>rs-italia/campagne</code>.</div>
         </div>
 
       </div>
@@ -915,20 +916,20 @@ function checkMissingData() {
 
   // LinkedIn XLS
   if (!RS_DATA?.metriche?.length)
-    missing.push('LinkedIn Analytics XLS — scarica da LinkedIn Page Analytics (Contenuti + Follower) → <code>inbox/rs-italia/</code>');
+    missing.push('LinkedIn Analytics XLS — scarica da LinkedIn Page Analytics (Contenuti + Follower) e caricalo nell\'<a href="/upload">Area admin</a> → RS Italia');
 
   // Campaign Manager CSV
   if (!CAMP_DATA?.camp_meta?.length)
-    missing.push('Campaign Manager CSV — scarica da LinkedIn Campaign Manager → Reports → Ad Performance → <code>inbox/rs-italia/</code>');
+    missing.push('Campaign Manager CSV — scarica da LinkedIn Campaign Manager → Reports → Ad Performance e caricalo nell\'<a href="/upload">Area admin</a> → RS Italia');
 
   // Creative Performance CSV
   if (!CREATIVE_DATA?.length)
-    missing.push('Creative Performance CSV — scarica da LinkedIn Campaign Manager → Reports → Creative Performance → <code>inbox/</code>');
+    missing.push('Creative Performance CSV — scarica da LinkedIn Campaign Manager → Reports → Creative Performance e caricalo nell\'<a href="/upload">Area admin</a> → RS Italia');
 
   // Keye — avvisa se dati vecchi (>14 giorni)
   const keyeDate = KEYE_DATA?.meta?.exportedAt ? new Date(KEYE_DATA.meta.exportedAt) : null;
   if (!keyeDate || (Date.now() - keyeDate) > 14 * 86400000)
-    missing.push('Keye non aggiornato — lancia <code>python3 update.py</code> con connessione internet attiva');
+    missing.push('Keye non aggiornato — apri l\'<a href="/upload">Area admin</a> e premi «Elabora ora» (senza spuntare «Salta Keye»)');
 
   const banner = document.getElementById('missingBanner');
   const list   = document.getElementById('missingList');
@@ -1672,7 +1673,7 @@ function renderCreatives(){
   if(!body) return;
   const campLabel = id => id==='1056604124' ? 'Amplification Always On (Krein)' : 'MRO Survey (Krein)';
   if(!CREATIVE_DATA || !CREATIVE_DATA.length){
-    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:16px">Nessun dato creative disponibile. Carica il Creative Performance CSV in inbox/.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-3);padding:16px">Nessun dato creative disponibile. Carica il Creative Performance CSV nell'<a href="/upload">Area admin</a>.</td></tr>`;
     return;
   }
 
@@ -2452,24 +2453,6 @@ window.addEventListener('afterprint', ()=>{
   }
 });
 
-/* ============ REFRESH PROMPT (clipboard → Cowork) ============ */
-const REFRESH_PROMPT = `Aggiorna la dashboard RS Italia con archiviazione storica:
-
-1. ARCHIVIO: prima di sostituire qualsiasi dato corrente, sposta i file attualmente nella cartella ~/Documents/Claude/Projects/RS/rs-italia-dashboard/ negli archivi datati:
-   - rs-italia_content_*.xls → archive/linkedin/<data_ultimo_giorno>_content.xls
-   - rs-italia_followers_*.xls → archive/linkedin/<data_ultimo_giorno>_followers.xls
-   - rs_data.json → archive/linkedin/<data_ultimo_giorno>_extracted.json
-   - keye-export.json → archive/keye/<data_export>_keye-export.json
-   Usa la data di fine periodo (per LinkedIn: ultima riga del foglio Metriche; per Keye: campo _meta.exportedAt[:10]) come prefisso ISO AAAA-MM-GG. Non sovrascrivere se esiste già un file con lo stesso nome — appendi _v2, _v3.
-
-2. RIGENERAZIONE: leggi i NUOVI file presenti nella cartella root (rs-italia_content_*.xls, rs-italia_followers_*.xls, keye-export.json), estrai i dati, rigenera rs_data.json e ricostruisci dashboard.html con i nuovi dati embeddati (LinkedIn + Keye).
-
-3. ARTIFACT LIVE: aggiorna "rs-italia-linkedin-dashboard" con le stesse modifiche.
-
-4. PRESERVA: guida collassabile, pulsanti Aggiorna/Stampa, tab Brand Listening, struttura archive/.
-
-5. REPORT FINALE: dimmi quale periodo LinkedIn e quale snapshot Keye sono stati caricati, e cosa è stato spostato in archivio (path e nomi file).`;
-
 /* ============ EXPORT CSV CONTENUTI ============ */
 function exportPostsCSV(){
   const pool = state._postsPool || [];
@@ -2510,22 +2493,9 @@ function showToast(msg, kind){
   clearTimeout(window._toastTO);
   window._toastTO = setTimeout(()=>{ t.classList.remove('show'); }, 5500);
 }
-async function copyRefreshPrompt(){
-  try {
-    await navigator.clipboard.writeText(REFRESH_PROMPT);
-    showToast('<b>Comando copiato!</b> Apri Cowork con la cartella <b>RS</b> selezionata, incolla con <kbd>⌘V</kbd> in chat e premi Invio. Claude rigenera la dashboard con i nuovi file.', 'success');
-  } catch(err) {
-    // fallback
-    const ta = document.createElement('textarea');
-    ta.value = REFRESH_PROMPT; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.select();
-    try { document.execCommand('copy'); showToast('<b>Comando copiato!</b> Incollalo in Cowork e premi Invio.', 'success'); }
-    catch(e){ showToast('Copia non disponibile. Comando: <code style="background:rgba(255,255,255,.15);padding:2px 6px;border-radius:3px">'+REFRESH_PROMPT.slice(0,60)+'…</code>'); }
-    finally { document.body.removeChild(ta); }
-  }
-}
-document.getElementById('refreshTopBtn').addEventListener('click', copyRefreshPrompt);
-document.getElementById('refreshMainBtn').addEventListener('click', copyRefreshPrompt);
+function openAdminArea(){ window.open('/upload', '_blank'); }
+document.getElementById('refreshTopBtn').addEventListener('click', openAdminArea);
+document.getElementById('refreshMainBtn').addEventListener('click', openAdminArea);
 document.getElementById('printBtn').addEventListener('click', printDashboard);
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   await fetch('/api/auth/logout', { method: 'POST' });
