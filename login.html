@@ -202,6 +202,18 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 </div>
 
 <script>
+const dashMap = { 'rs-italia': '/rs-italia', 'optimedia': '/optimedia' };
+
+// Già autenticato? (es. arrivo col pulsante "indietro") → vai alla dashboard
+fetch('/api/auth/verify')
+  .then(r => r.ok ? r.json() : null)
+  .then(u => {
+    if (!u) return;
+    const next = new URLSearchParams(location.search).get('next');
+    location.replace(next || dashMap[u.dashboard] || '/rs-italia');
+  })
+  .catch(() => {});
+
 const form = document.getElementById('form');
 const btn  = document.getElementById('btn');
 const err  = document.getElementById('error');
@@ -234,8 +246,8 @@ form.addEventListener('submit', async e => {
 
     const params = new URLSearchParams(location.search);
     const next   = params.get('next');
-    const dashMap = { 'rs-italia': '/rs-italia', 'optimedia': '/optimedia' };
-    location.href = next || dashMap[data.dashboard] || '/rs-italia';
+    // replace: il login non resta nella cronologia (il back non ci torna)
+    location.replace(next || dashMap[data.dashboard] || '/rs-italia');
 
   } catch {
     err.textContent = 'Errore di rete. Riprova.';
