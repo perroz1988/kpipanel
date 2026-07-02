@@ -2,9 +2,13 @@
   "rewrites": [
     { "source": "/rs-italia", "destination": "/dashboard.html" },
     { "source": "/optimedia", "destination": "/optimedia.html" },
+    { "source": "/upload", "destination": "/upload.html" },
     { "source": "/login", "destination": "/login.html" },
     { "source": "/", "destination": "/login.html" }
   ],
+  "functions": {
+    "api/process.py": { "maxDuration": 300 }
+  },
   "headers": [
     {
       "source": "/dashboard.html",
@@ -13,9 +17,15 @@
       ]
     },
     {
-      "source": "/rs_data.json",
+      "source": "/optimedia.html",
       "headers": [
-        { "key": "Cache-Control", "value": "no-cache" }
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/upload.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
     {

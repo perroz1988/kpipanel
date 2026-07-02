@@ -1,9 +1,14 @@
 archive/
 inbox/
 _trash/
-*.py
+trash/
+/update.py
+/pdf.py
+scripts/
+__pycache__/
 PRODUCT.md
 DESIGN.md
 .impeccable/
 .claude/
 *.pdf
+*.png

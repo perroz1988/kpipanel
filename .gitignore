@@ -13,9 +13,13 @@ Icon
 archive/
 inbox/
 _trash/
+trash/
+*.png
 
-# Tool interno (non serve online)
-*.py
+# Tool interni locali (contengono segreti Keye — la versione cloud è api/_lib/engine.py)
+/update.py
+/pdf.py
+__pycache__/
 
 # Design system interno
 PRODUCT.md

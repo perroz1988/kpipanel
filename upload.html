@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KPI Dashboard — Upload dati</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:     oklch(96.5% 0.006 88);
+  --card:   oklch(99.5% 0.002 88);
+  --border: oklch(89.5% 0.006 88);
+  --text:   oklch(18% 0.012 250);
+  --text-2: oklch(48% 0.006 250);
+  --text-3: oklch(64% 0.005 250);
+  --accent: oklch(44% 0.155 265);
+  --accent-h: oklch(38% 0.155 265);
+  --pos:    oklch(50% 0.14 150);
+  --neg:    oklch(40% 0.19 25);
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--bg);
+  font-family: -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--text);
+  padding: 28px 20px 60px;
+}
+
+.wrap { max-width: 860px; margin: 0 auto; }
+
+header { display: flex; align-items: center; gap: 11px; margin-bottom: 28px; }
+.logo-mark {
+  width: 38px; height: 38px; background: var(--accent); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.logo-mark svg { width: 18px; height: 18px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.logo-text strong { display: block; font-size: 14px; font-weight: 700; line-height: 1.2; }
+.logo-text span { font-size: 11px; color: var(--text-3); font-weight: 500; }
+header .spacer { flex: 1; }
+header a { font-size: 12px; color: var(--text-2); text-decoration: none; margin-left: 14px; }
+header a:hover { color: var(--accent); }
+
+.card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; box-shadow: 0 2px 16px oklch(0% 0 0 / 0.05); margin-bottom: 20px;
+}
+h2 { font-size: 15px; font-weight: 700; margin-bottom: 14px; }
+h2 small { font-weight: 500; font-size: 12px; color: var(--text-3); margin-left: 6px; }
+
+.tabs { display: flex; gap: 6px; margin-bottom: 16px; }
+.tab {
+  padding: 7px 16px; font-size: 13px; font-weight: 600; border-radius: 7px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-2);
+  cursor: pointer; font-family: inherit;
+}
+.tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.platform { display: none; gap: 6px; margin-bottom: 16px; }
+.platform.visible { display: flex; }
+.chip {
+  padding: 5px 13px; font-size: 12px; font-weight: 600; border-radius: 99px;
+  border: 1px solid var(--border); background: transparent; color: var(--text-2);
+  cursor: pointer; font-family: inherit;
+}
+.chip.active { border-color: var(--accent); color: var(--accent); background: oklch(44% 0.155 265 / 0.08); }
+
+.drop {
+  border: 2px dashed var(--border); border-radius: 10px; padding: 36px 20px;
+  text-align: center; color: var(--text-2); font-size: 14px; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.drop.over { border-color: var(--accent); background: oklch(44% 0.155 265 / 0.05); }
+.drop strong { color: var(--accent); }
+.drop .hint { display: block; margin-top: 6px; font-size: 12px; color: var(--text-3); }
+
+ul.files { list-style: none; margin-top: 14px; }
+ul.files li {
+  display: flex; align-items: center; gap: 10px; padding: 8px 4px;
+  font-size: 13px; border-bottom: 1px solid var(--border);
+}
+ul.files li:last-child { border-bottom: none; }
+.files .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.files .meta { font-size: 11px; color: var(--text-3); flex-shrink: 0; }
+.files .st { font-size: 11px; font-weight: 600; flex-shrink: 0; }
+.st.ok { color: var(--pos); }
+.st.err { color: var(--neg); }
+.st.load { color: var(--text-3); }
+.files button.x {
+  border: none; background: none; color: var(--text-3); cursor: pointer;
+  font-size: 14px; padding: 2px 6px; font-family: inherit;
+}
+.files button.x:hover { color: var(--neg); }
+.files a { color: var(--accent); text-decoration: none; font-size: 12px; }
+
+.row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+button.primary {
+  padding: 10px 22px; font-size: 14px; font-weight: 600; font-family: inherit;
+  color: #fff; background: var(--accent); border: none; border-radius: 7px; cursor: pointer;
+}
+button.primary:hover:not(:disabled) { background: var(--accent-h); }
+button.primary:disabled { opacity: .55; cursor: not-allowed; }
+label.opt { font-size: 13px; color: var(--text-2); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+pre.log {
+  display: none; margin-top: 16px; padding: 14px; background: oklch(20% 0.01 250);
+  color: oklch(92% 0.005 88); font-size: 12px; line-height: 1.55; border-radius: 8px;
+  overflow-x: auto; white-space: pre-wrap; max-height: 420px; overflow-y: auto;
+}
+pre.log.visible { display: block; }
+
+.folder { margin-top: 10px; }
+.folder > .fname {
+  font-size: 12px; font-weight: 700; color: var(--text-2); text-transform: uppercase;
+  letter-spacing: .4px; padding: 6px 0 2px;
+}
+.empty { font-size: 13px; color: var(--text-3); padding: 8px 0; }
+.badge {
+  display: inline-block; min-width: 20px; text-align: center; font-size: 11px;
+  font-weight: 700; color: #fff; background: var(--accent); border-radius: 99px;
+  padding: 2px 7px; margin-left: 8px; vertical-align: 1px;
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div class="logo-text">
+      <strong>KPI Dashboard</strong>
+      <span>Upload &amp; archivio dati</span>
+    </div>
+    <div class="spacer"></div>
+    <a href="/rs-italia">RS Italia →</a>
+    <a href="/optimedia">Optimedia →</a>
+    <a href="#" id="logout">Esci</a>
+  </header>
+
+  <!-- ── UPLOAD ─────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>1 · Carica i file <small>XLS LinkedIn · CSV campagne / Meta</small></h2>
+
+    <div class="tabs">
+      <button class="tab active" data-client="rs-italia">RS Italia</button>
+      <button class="tab" data-client="optimedia">Optimedia</button>
+    </div>
+
+    <div class="platform" id="platform">
+      <button class="chip active" data-p="Facebook">Facebook</button>
+      <button class="chip" data-p="Instagram">Instagram</button>
+      <button class="chip" data-p="LinkedIn">LinkedIn</button>
+    </div>
+
+    <div class="drop" id="drop">
+      Trascina qui i file oppure <strong>sfoglia</strong>
+      <span class="hint" id="hint">RS Italia: content.xls, followers.xls, campagne.csv, creative_performance.csv</span>
+      <input type="file" id="picker" multiple hidden>
+    </div>
+
+    <ul class="files" id="uplist"></ul>
+  </div>
+
+  <!-- ── INBOX ──────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>2 · In attesa di elaborazione<span class="badge" id="inboxCount">0</span></h2>
+    <ul class="files" id="inbox"></ul>
+    <div class="empty" id="inboxEmpty">Nessun file in attesa.</div>
+  </div>
+
+  <!-- ── ELABORA ────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>3 · Elabora e aggiorna le dashboard</h2>
+    <div class="row">
+      <button class="primary" id="runBtn">Elabora ora</button>
+      <label class="opt"><input type="checkbox" id="noKeye"> Salta aggiornamento Keye</label>
+      <span class="empty" id="runHint">Esegue il motore sui file in attesa + archivio. ~30–60 secondi.</span>
+    </div>
+    <pre class="log" id="log"></pre>
+  </div>
+
+  <!-- ── ARCHIVIO ───────────────────────────────────────────── -->
+  <div class="card">
+    <h2>Archivio storico<span class="badge" id="archCount">0</span></h2>
+    <div id="archive"></div>
+  </div>
+
+</div>
+
+<script>
+/* ── auth gate: solo admin ─────────────────────────────────── */
+fetch('/api/auth/verify').then(r => r.json()).then(u => {
+  if (u.error || u.role !== 'admin') location.replace('/login?next=/upload');
+}).catch(() => location.replace('/login?next=/upload'));
+
+document.getElementById('logout').addEventListener('click', async e => {
+  e.preventDefault();
+  await fetch('/api/auth/logout', { method: 'POST' });
+  location.replace('/login');
+});
+
+/* ── stato UI ──────────────────────────────────────────────── */
+let client = 'rs-italia';
+let platform = 'Facebook';
+
+const HINTS = {
+  'rs-italia': 'RS Italia: content.xls, followers.xls, campagne.csv, creative_performance.csv',
+  'optimedia': 'Optimedia: CSV esportati da Meta Business Suite / XLS LinkedIn — scegli la piattaforma',
+};
+
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  client = t.dataset.client;
+  document.getElementById('platform').classList.toggle('visible', client === 'optimedia');
+  document.getElementById('hint').textContent = HINTS[client];
+}));
+
+document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+  document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+  c.classList.add('active');
+  platform = c.dataset.p;
+}));
+
+/* ── upload ────────────────────────────────────────────────── */
+const drop   = document.getElementById('drop');
+const picker = document.getElementById('picker');
+const uplist = document.getElementById('uplist');
+
+drop.addEventListener('click', () => picker.click());
+picker.addEventListener('change', () => { uploadFiles([...picker.files]); picker.value = ''; });
+['dragover','dragenter'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => uploadFiles([...e.dataTransfer.files]));
+
+function destFor(file) {
+  if (client === 'optimedia') return 'optimedia/' + platform;
+  return /creative_performance/i.test(file.name) ? 'rs-creative' : 'rs-italia';
+}
+
+async function uploadFiles(files) {
+  for (const file of files) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="name"></span><span class="meta"></span><span class="st load">carico…</span>`;
+    li.querySelector('.name').textContent = file.name;
+    li.querySelector('.meta').textContent = (file.size/1024).toFixed(0) + ' KB';
+    uplist.appendChild(li);
+    const st = li.querySelector('.st');
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dest: destFor(file), filename: file.name }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j.error || res.status);
+
+      const put = await fetch(j.url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+      if (!put.ok) throw new Error('upload storage ' + put.status);
+
+      st.textContent = '✓ ' + j.path;
+      st.className = 'st ok';
+    } catch (err) {
+      st.textContent = '✗ ' + err.message;
+      st.className = 'st err';
+    }
+  }
+  loadInbox();
+}
+
+/* ── inbox ─────────────────────────────────────────────────── */
+async function loadInbox() {
+  const r = await fetch('/api/archive?bucket=kpi-inbox');
+  const { files = [] } = await r.json();
+  const real = files.filter(f => !f.path.endsWith('.keep'));
+  const ul = document.getElementById('inbox');
+  ul.innerHTML = '';
+  document.getElementById('inboxCount').textContent = real.length;
+  document.getElementById('inboxEmpty').style.display = real.length ? 'none' : 'block';
+
+  for (const f of real) {
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="name"></span><span class="meta"></span><button class="x" title="Elimina">✕</button>`;
+    li.querySelector('.name').textContent = f.path;
+    li.querySelector('.meta').textContent = (f.size/1024).toFixed(0) + ' KB';
+    li.querySelector('.x').addEventListener('click', async () => {
+      if (!confirm('Eliminare ' + f.path + ' dalla coda?')) return;
+      await fetch('/api/archive?bucket=kpi-inbox&path=' + encodeURIComponent(f.path), { method: 'DELETE' });
+      loadInbox();
+    });
+    ul.appendChild(li);
+  }
+}
+
+/* ── elabora ───────────────────────────────────────────────── */
+const runBtn = document.getElementById('runBtn');
+const log    = document.getElementById('log');
+
+runBtn.addEventListener('click', async () => {
+  runBtn.disabled = true;
+  runBtn.textContent = 'Elaborazione in corso…';
+  log.className = 'log visible';
+  log.textContent = 'Avvio motore…\n';
+
+  const noKeye = document.getElementById('noKeye').checked ? '&no_keye=1' : '';
+  try {
+    const r = await fetch('/api/process?client=all' + noKeye, { method: 'POST' });
+    const j = await r.json();
+    log.textContent = (j.log || '') + (j.ok
+      ? '\n━━━ COMPLETATO ━━━\nDashboard aggiornate: i client vedono già i nuovi dati.'
+      : '\n━━━ ERRORE ━━━\n' + (j.error || '') + '\n' + (j.trace || ''));
+    loadInbox();
+    loadArchive();
+  } catch (err) {
+    log.textContent += '\nErrore di rete: ' + err.message;
+  }
+  runBtn.disabled = false;
+  runBtn.textContent = 'Elabora ora';
+});
+
+/* ── archivio ──────────────────────────────────────────────── */
+async function loadArchive() {
+  const r = await fetch('/api/archive?bucket=kpi-archive');
+  const { files = [] } = await r.json();
+  const box = document.getElementById('archive');
+  document.getElementById('archCount').textContent = files.length;
+
+  const groups = {};
+  for (const f of files) {
+    const dir = f.path.split('/').slice(0, -1).join('/') || '(root)';
+    (groups[dir] ??= []).push(f);
+  }
+
+  box.innerHTML = '';
+  for (const dir of Object.keys(groups).sort()) {
+    const div = document.createElement('div');
+    div.className = 'folder';
+    div.innerHTML = `<div class="fname"></div><ul class="files"></ul>`;
+    div.querySelector('.fname').textContent = dir;
+    const ul = div.querySelector('ul');
+    for (const f of groups[dir].sort((a, b) => b.path.localeCompare(a.path))) {
+      const li = document.createElement('li');
+      li.innerHTML = `<span class="name"></span><span class="meta"></span><a href="#">scarica</a>`;
+      li.querySelector('.name').textContent = f.path.split('/').pop();
+      li.querySelector('.meta').textContent = (f.size/1024).toFixed(0) + ' KB';
+      li.querySelector('a').addEventListener('click', async e => {
+        e.preventDefault();
+        const r = await fetch('/api/archive?bucket=kpi-archive&download=' + encodeURIComponent(f.path));
+        const j = await r.json();
+        if (j.url) location.href = j.url;
+      });
+      ul.appendChild(li);
+    }
+    box.appendChild(div);
+  }
+}
+
+loadInbox();
+loadArchive();
+</script>
+</body>
+</html>
