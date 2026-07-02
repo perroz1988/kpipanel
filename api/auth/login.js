@@ -49,5 +49,5 @@ export default async function handler(req, res) {
   ]);
 
   res.setHeader('Set-Cookie', `kpi_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${7 * 24 * 60 * 60}`);
-  res.status(200).json({ name: user.name, dashboard: user.dashboard ?? 'rs-italia' });
+  res.status(200).json({ name: user.name, role: user.role, dashboard: user.dashboard ?? 'rs-italia' });
 }

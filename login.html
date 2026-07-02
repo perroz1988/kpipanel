@@ -166,6 +166,39 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
   text-align: center;
   line-height: 1.5;
 }
+
+/* Scelta destinazione (solo admin) */
+#chooser { display: none; }
+.dest {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 13px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.dest:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px oklch(44% 0.155 265 / 0.10);
+}
+.dest .ic {
+  width: 34px; height: 34px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; color: #fff;
+  background: var(--accent); border-radius: 7px;
+}
+.dest .ic.gear { background: oklch(48% 0.006 250); }
+.dest b { display: block; font-size: 14px; }
+.dest span { display: block; font-size: 11.5px; color: var(--text-3); margin-top: 1px; }
 </style>
 </head>
 <body>
@@ -182,8 +215,23 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
     </div>
   </div>
 
-  <h1>Accedi</h1>
-  <p class="subtitle">Inserisci le credenziali ricevute per accedere alla tua dashboard.</p>
+  <h1 id="title">Accedi</h1>
+  <p class="subtitle" id="subtitle">Inserisci le credenziali ricevute per accedere alla tua dashboard.</p>
+
+  <div id="chooser">
+    <button class="dest" data-go="/rs-italia">
+      <span class="ic">RS</span>
+      <span><b>RS Italia</b><span>LinkedIn Dashboard · Brand Listening</span></span>
+    </button>
+    <button class="dest" data-go="/optimedia">
+      <span class="ic">OM</span>
+      <span><b>Optimedia</b><span>Facebook · Instagram · LinkedIn</span></span>
+    </button>
+    <button class="dest" data-go="/upload">
+      <span class="ic gear">⚙</span>
+      <span><b>Area admin</b><span>Upload dati · Archivio · Utenti</span></span>
+    </button>
+  </div>
 
   <form id="form" novalidate>
     <div class="field">
@@ -203,15 +251,28 @@ button:disabled { opacity: 0.55; cursor: not-allowed; }
 
 <script>
 const dashMap = { 'rs-italia': '/rs-italia', 'optimedia': '/optimedia' };
+const nextUrl = new URLSearchParams(location.search).get('next');
 
-// Già autenticato? (es. arrivo col pulsante "indietro") → vai alla dashboard
+// Admin: invece del redirect, scelta della destinazione
+function showChooser(name) {
+  document.getElementById('form').style.display = 'none';
+  document.getElementById('title').textContent = name ? `Ciao, ${name.split(' ')[0]}` : 'Bentornato';
+  document.getElementById('subtitle').textContent = 'Dove vuoi andare?';
+  document.getElementById('chooser').style.display = 'block';
+}
+document.querySelectorAll('.dest').forEach(b =>
+  b.addEventListener('click', () => location.replace(b.dataset.go)));
+
+function enter(u) {
+  if (nextUrl) { location.replace(nextUrl); return; }
+  if (u.role === 'admin') { showChooser(u.name); return; }
+  location.replace(dashMap[u.dashboard] || '/rs-italia');
+}
+
+// Già autenticato? (es. arrivo col pulsante "indietro") → salta il form
 fetch('/api/auth/verify')
   .then(r => r.ok ? r.json() : null)
-  .then(u => {
-    if (!u) return;
-    const next = new URLSearchParams(location.search).get('next');
-    location.replace(next || dashMap[u.dashboard] || '/rs-italia');
-  })
+  .then(u => { if (u) enter(u); })
   .catch(() => {});
 
 const form = document.getElementById('form');
@@ -244,10 +305,8 @@ form.addEventListener('submit', async e => {
       return;
     }
 
-    const params = new URLSearchParams(location.search);
-    const next   = params.get('next');
     // replace: il login non resta nella cronologia (il back non ci torna)
-    location.replace(next || dashMap[data.dashboard] || '/rs-italia');
+    enter(data);
 
   } catch {
     err.textContent = 'Errore di rete. Riprova.';

@@ -128,6 +128,26 @@ select.sort {
   color: var(--text-2); background: oklch(94% 0.006 88); border: 1px solid var(--border);
   border-radius: 99px; padding: 2px 8px; flex-shrink: 0;
 }
+.fchip.admin { color: var(--accent); border-color: oklch(44% 0.155 265 / 0.35); background: oklch(44% 0.155 265 / 0.07); }
+
+button.mini {
+  padding: 5px 10px; font-size: 11.5px; font-weight: 600; font-family: inherit;
+  color: var(--text-2); background: transparent; border: 1px solid var(--border);
+  border-radius: 6px; cursor: pointer; flex-shrink: 0;
+}
+button.mini:hover { border-color: var(--accent); color: var(--accent); }
+button.mini.danger:hover { border-color: var(--neg); color: var(--neg); }
+
+.frow { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.frow input, .frow select {
+  flex: 1; min-width: 150px; padding: 8px 12px; font-size: 13px; font-family: inherit;
+  color: var(--text); background: var(--card); border: 1px solid var(--border);
+  border-radius: 7px; outline: none;
+}
+.frow input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px oklch(44% 0.155 265 / 0.12); }
+
+ul.files li.off .name, ul.files li.off .fchip, ul.files li.off .meta { opacity: .45; }
+.files .mail { font-weight: 400; color: var(--text-3); font-size: 12px; margin-left: 6px; }
 .badge {
   display: inline-block; min-width: 20px; text-align: center; font-size: 11px;
   font-weight: 700; color: #fff; background: var(--accent); border-radius: 99px;
@@ -144,7 +164,7 @@ select.sort {
     </div>
     <div class="logo-text">
       <strong>KPI Dashboard</strong>
-      <span>Upload &amp; archivio dati</span>
+      <span>Upload · Archivio · Utenti</span>
     </div>
     <div class="spacer"></div>
     <a href="/rs-italia">RS Italia →</a>
@@ -213,6 +233,37 @@ select.sort {
       </select>
     </div>
     <div id="archive"></div>
+  </div>
+
+  <!-- ── UTENTI ─────────────────────────────────────────────── -->
+  <div class="card">
+    <h2>Gestione utenti<span class="badge" id="usrCount">0</span></h2>
+    <ul class="files" id="usrList"></ul>
+
+    <button class="primary" id="usrAddBtn" style="margin-top:14px">+ Nuovo utente</button>
+
+    <div id="usrForm" style="display:none;margin-top:6px">
+      <div class="frow">
+        <input id="nuName" placeholder="Nome e cognome" autocomplete="off">
+        <input id="nuEmail" type="email" placeholder="email@azienda.it" autocomplete="off">
+      </div>
+      <div class="frow">
+        <input id="nuPass" placeholder="Password (min 8 caratteri)" autocomplete="off">
+        <select id="nuDash">
+          <option value="rs-italia">RS Italia</option>
+          <option value="optimedia">Optimedia</option>
+        </select>
+        <select id="nuRole">
+          <option value="viewer">Viewer (cliente)</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="row" style="margin-top:12px">
+        <button class="primary" id="nuSave">Crea utente</button>
+        <button class="mini" id="nuCancel">Annulla</button>
+        <span class="empty" id="nuMsg"></span>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -436,8 +487,113 @@ document.querySelectorAll('#archTabs .tab').forEach(t => t.addEventListener('cli
 document.getElementById('archSearch').addEventListener('input', renderArchive);
 document.getElementById('archSort').addEventListener('change', renderArchive);
 
+/* ── gestione utenti ───────────────────────────────────────── */
+let usrMe = null;
+
+const fmtLast = d => d
+  ? new Date(d).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  : 'mai';
+
+async function usrPatch(body) {
+  const r = await fetch('/api/users', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const j = await r.json();
+  if (!r.ok) alert(j.error || 'Errore');
+  loadUsers();
+}
+
+async function loadUsers() {
+  const r = await fetch('/api/users');
+  if (!r.ok) return;
+  const { users = [], me } = await r.json();
+  usrMe = me;
+
+  document.getElementById('usrCount').textContent = users.length;
+  const ul = document.getElementById('usrList');
+  ul.innerHTML = '';
+
+  for (const u of users) {
+    const li = document.createElement('li');
+    if (!u.is_active) li.classList.add('off');
+    li.innerHTML = `
+      <span class="name"><b></b><span class="mail"></span></span>
+      <span class="fchip dash"></span>
+      <span class="fchip role"></span>
+      <span class="meta"></span>
+      <button class="mini tgl"></button>
+      <button class="mini pwd">password</button>
+      <button class="mini danger del">elimina</button>`;
+
+    li.querySelector('b').textContent    = u.name + (u.id === usrMe ? ' (tu)' : '');
+    li.querySelector('.mail').textContent = u.email;
+    li.querySelector('.dash').textContent = u.dashboard === 'optimedia' ? 'Optimedia' : 'RS Italia';
+    const roleChip = li.querySelector('.role');
+    roleChip.textContent = u.role;
+    if (u.role === 'admin') roleChip.classList.add('admin');
+    li.querySelector('.meta').textContent = (u.is_active ? '' : 'disattivo · ') + 'ultimo: ' + fmtLast(u.last_login);
+
+    const tgl = li.querySelector('.tgl');
+    tgl.textContent = u.is_active ? 'disattiva' : 'attiva';
+    tgl.addEventListener('click', () => usrPatch({ id: u.id, is_active: !u.is_active }));
+
+    li.querySelector('.pwd').addEventListener('click', () => {
+      const pw = prompt(`Nuova password per ${u.email} (min 8 caratteri):`);
+      if (pw === null) return;
+      if (pw.length < 8) { alert('Minimo 8 caratteri.'); return; }
+      usrPatch({ id: u.id, password: pw });
+    });
+
+    li.querySelector('.del').addEventListener('click', async () => {
+      if (!confirm(`Eliminare definitivamente ${u.email}?`)) return;
+      const r = await fetch('/api/users?id=' + encodeURIComponent(u.id), { method: 'DELETE' });
+      const j = await r.json();
+      if (!r.ok) alert(j.error || 'Errore');
+      loadUsers();
+    });
+
+    if (u.id === usrMe) { tgl.remove(); li.querySelector('.del').remove(); }
+    ul.appendChild(li);
+  }
+}
+
+document.getElementById('usrAddBtn').addEventListener('click', () => {
+  document.getElementById('usrForm').style.display = 'block';
+  document.getElementById('usrAddBtn').style.display = 'none';
+  document.getElementById('nuMsg').textContent = '';
+});
+document.getElementById('nuCancel').addEventListener('click', () => {
+  document.getElementById('usrForm').style.display = 'none';
+  document.getElementById('usrAddBtn').style.display = '';
+});
+document.getElementById('nuSave').addEventListener('click', async () => {
+  const msg = document.getElementById('nuMsg');
+  msg.textContent = 'Creazione…';
+  const r = await fetch('/api/users', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name:      document.getElementById('nuName').value,
+      email:     document.getElementById('nuEmail').value,
+      password:  document.getElementById('nuPass').value,
+      dashboard: document.getElementById('nuDash').value,
+      role:      document.getElementById('nuRole').value,
+    }),
+  });
+  const j = await r.json();
+  if (!r.ok) { msg.textContent = '✗ ' + (j.error || 'Errore'); return; }
+  msg.textContent = '';
+  ['nuName','nuEmail','nuPass'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('usrForm').style.display = 'none';
+  document.getElementById('usrAddBtn').style.display = '';
+  loadUsers();
+});
+
 loadInbox();
 loadArchive();
+loadUsers();
 </script>
 </body>
 </html>
