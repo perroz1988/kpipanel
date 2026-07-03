@@ -1440,62 +1440,91 @@ def parse_campaign_csv(path):
 
 
 def parse_creative_performance_report(path):
-    """Parsa il Creative Performance Report di LinkedIn (usa CSV reader).
-    Colonne: 19=Ad ID, 21=Ad Intro, 27=Spent, 28=Imp, 29=Clicks, 30=CTR,
-    33=Reactions, 34=Comments, 35=Shares, 40=ER, 63=Reach"""
+    """Parsa l'Ad/Creative Performance Report di LinkedIn Campaign Manager
+    (TSV utf-16). Le colonne VARIANO da export a export (dipendono dalle
+    feature dell'account), quindi si mappano per intestazione, non per posizione."""
     import csv
     with open(path, 'r', encoding='utf-16') as f:
-        reader = csv.reader(f, delimiter='\t')
-        lines = list(reader)
+        lines = list(csv.reader(f, delimiter='\t'))
 
-    # Riga 5 = header (0-indexed)
-    if len(lines) < 6:
+    # trova la riga header (le prime righe sono il preambolo del report)
+    hdr_idx = next((i for i, cells in enumerate(lines[:20])
+                    if 'Campaign ID' in cells and 'Impressions' in cells), None)
+    if hdr_idx is None:
         return []
 
-    def fv(cells, i):
+    col = {name.strip(): i for i, name in enumerate(lines[hdr_idx])}
+
+    def idx(*names):
+        for n in names:
+            if n in col:
+                return col[n]
+        return None
+
+    C = {
+        'camp_id':     idx('Campaign ID'),
+        'camp_name':   idx('Campaign Name'),
+        'ad_name':     idx('Ad Name'),
+        'ad_id':       idx('Ad ID'),
+        'ad_intro':    idx('Ad Introduction Text'),
+        'click_url':   idx('Click URL'),
+        'spent':       idx('Total Spent'),
+        'impressions': idx('Impressions'),
+        'clicks':      idx('Clicks'),
+        'reactions':   idx('Reactions'),
+        'comments':    idx('Comments'),
+        'shares':      idx('Shares'),
+        'er':          idx('Engagement Rate'),
+        'reach':       idx('Reach'),
+        'leads':       idx('Leads'),
+    }
+
+    def sv(cells, key):
+        i = C.get(key)
+        return cells[i].strip() if i is not None and i < len(cells) else ''
+
+    def fv(cells, key):
         try:
-            val = str(cells[i]).strip().replace(',','').replace('%','')
-            return float(val) if i < len(cells) and val else 0.0
-        except:
+            val = sv(cells, key).replace(',', '').replace('%', '')
+            return float(val) if val else 0.0
+        except (ValueError, TypeError):
             return 0.0
 
     rows = []
-    for cells in lines[6:]:
-        if not cells or len(cells) < 40:
+    for cells in lines[hdr_idx + 1:]:
+        if not cells or len(cells) < 10:
             continue
-        try:
-            imp_str = cells[28].strip().replace(',','')
-            clk_str = cells[29].strip().replace(',','')
-            camp_name = cells[4].strip() if len(cells) > 4 else ''
-            post_text = cells[21].strip() if len(cells) > 21 else ''
+        if not sv(cells, 'impressions') or not sv(cells, 'clicks'):
+            continue
 
-            if not imp_str or not clk_str:
-                continue
-
-            # Inferisci camp_id dal campaign name
-            camp_id = '0'
+        camp_name = sv(cells, 'camp_name')
+        camp_id   = sv(cells, 'camp_id')
+        if not camp_id:
+            # fallback storico: inferenza dal nome campagna / testo ad
+            post_text = sv(cells, 'ad_intro')
             if 'MRO' in camp_name or 'MRO' in post_text:
                 camp_id = '987808183'
             elif 'Amplification' in camp_name or 'Always On' in camp_name:
                 camp_id = '1056604124'
+            else:
+                camp_id = '0'
 
-            rows.append({
-                'camp_id': camp_id,
-                'camp_name': '',
-                'ad_name': cells[18].strip() if len(cells) > 18 else '',
-                'click_url': cells[24].strip() if len(cells) > 24 else '',
-                'spent': fv(cells, 27),
-                'impressions': fv(cells, 28),
-                'clicks': fv(cells, 29),
-                'reactions': fv(cells, 33),
-                'comments': fv(cells, 34),
-                'shares': fv(cells, 35),
-                'er': fv(cells, 40),
-                'reach': fv(cells, 63),
-                'leads': 0.0,
-            })
-        except (ValueError, IndexError):
-            pass
+        rows.append({
+            'camp_id': camp_id,
+            'camp_name': '',
+            'ad_name': sv(cells, 'ad_name') or sv(cells, 'ad_intro')[:80] or sv(cells, 'ad_id'),
+            'click_url': sv(cells, 'click_url'),
+            'post_text': sv(cells, 'ad_intro')[:500],  # per il matching coi post organici
+            'spent': fv(cells, 'spent'),
+            'impressions': fv(cells, 'impressions'),
+            'clicks': fv(cells, 'clicks'),
+            'reactions': fv(cells, 'reactions'),
+            'comments': fv(cells, 'comments'),
+            'shares': fv(cells, 'shares'),
+            'er': fv(cells, 'er'),
+            'reach': fv(cells, 'reach'),
+            'leads': fv(cells, 'leads'),
+        })
 
     return rows
 
