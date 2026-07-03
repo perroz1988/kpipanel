@@ -114,13 +114,24 @@ def to_iso(val):
 
 # ─── PARSER XLS ──────────────────────────────────────────────────────────────
 
+def _sheet(wb, *names):
+    """Primo foglio esistente tra i nomi dati (LinkedIn esporta in IT o EN
+    a seconda della lingua dell'interfaccia — la struttura è identica)."""
+    for n in names:
+        try:
+            return wb.sheet_by_name(n)
+        except Exception:
+            pass
+    raise KeyError(f'Fogli {names} non trovati (presenti: {wb.sheet_names()})')
+
+
 def parse_content(path):
     """Estrae metriche giornaliere e lista post da un content XLS di LinkedIn."""
     wb = xlrd.open_workbook(path)
 
     # ---- Metriche (riga 0 = descrizione lunga, riga 1 = headers, riga 2+ = dati)
     metriche = []
-    sheet = wb.sheet_by_name('Metriche')
+    sheet = _sheet(wb, 'Metriche', 'Metrics')
     for r in range(2, sheet.nrows):
         row = sheet.row_values(r)
         date = to_iso(row[0])
@@ -153,7 +164,7 @@ def parse_content(path):
 
     # ---- Post (riga 0 = descrizione, riga 1 = headers, riga 2+ = dati)
     posts = []
-    sheet2 = wb.sheet_by_name('Tutti i post')
+    sheet2 = _sheet(wb, 'Tutti i post', 'All posts')
     for r in range(2, sheet2.nrows):
         row = sheet2.row_values(r)
         if not row[0]:
@@ -193,9 +204,9 @@ def parse_followers(path):
 
     # ---- Nuovi follower
     followers_daily = []
-    sheet = wb.sheet_by_name('Nuovi follower')
+    sheet = _sheet(wb, 'Nuovi follower', 'New followers')
     headers = [str(v).strip() for v in sheet.row_values(0)]
-    has_totale = 'Follower totali' in headers
+    has_totale = 'Follower totali' in headers or 'Total followers' in headers
 
     for r in range(1, sheet.nrows):
         row = sheet.row_values(r)
@@ -208,8 +219,8 @@ def parse_followers(path):
         tot  = int(row[4]) if has_totale and len(row) > 4 and row[4] else spon + org + auto
         followers_daily.append({'data': date, 'spon': spon, 'org': org, 'auto': auto, 'tot': tot})
 
-    def parse_kv(sheet_name, key_col=0, val_col=1):
-        s = wb.sheet_by_name(sheet_name)
+    def parse_kv(*sheet_names, key_col=0, val_col=1):
+        s = _sheet(wb, *sheet_names)
         out = []
         for r in range(1, s.nrows):
             row = s.row_values(r)
@@ -218,11 +229,11 @@ def parse_followers(path):
         return out
 
     demographics = {
-        'localita':   parse_kv('Località'),
-        'funzione':   parse_kv('Funzione lavorativa'),
-        'anzianita':  parse_kv('Anzianità'),
-        'settore':    parse_kv('Settore'),
-        'dim_azienda': parse_kv("Dimensioni dell’azienda"),
+        'localita':   parse_kv('Località', 'Location'),
+        'funzione':   parse_kv('Funzione lavorativa', 'Job function'),
+        'anzianita':  parse_kv('Anzianità', 'Seniority'),
+        'settore':    parse_kv('Settore', 'Industry'),
+        'dim_azienda': parse_kv("Dimensioni dell’azienda", 'Company size'),
     }
 
     fan_base_totale = sum(x['value'] for x in demographics['anzianita'])
@@ -239,10 +250,10 @@ def archive_new_file(src_path, kind):
     """
     wb = xlrd.open_workbook(src_path)
     if kind == 'content':
-        sheet = wb.sheet_by_name('Metriche')
+        sheet = _sheet(wb, 'Metriche', 'Metrics')
         dates = [to_iso(sheet.row_values(r)[0]) for r in range(2, sheet.nrows)]
     else:
-        sheet = wb.sheet_by_name('Nuovi follower')
+        sheet = _sheet(wb, 'Nuovi follower', 'New followers')
         dates = [to_iso(sheet.row_values(r)[0]) for r in range(1, sheet.nrows)]
 
     dates = [d for d in dates if d]
@@ -1567,9 +1578,9 @@ def _sniff_xls_kind(path):
     try:
         wb = xlrd.open_workbook(path)
         names = [s.lower() for s in wb.sheet_names()]
-        if 'metriche' in names or 'tutti i post' in names:
+        if 'metriche' in names or 'tutti i post' in names or 'all posts' in names:
             return 'content'
-        if 'nuovi follower' in names:
+        if 'nuovi follower' in names or 'new followers' in names:
             return 'followers'
     except Exception:
         pass
@@ -1726,32 +1737,44 @@ def run(skip_keye=False, skip_inbox=False, only_rs=False, only_opt=False):
                 print(f'     → Metti in: inbox/rs-italia/')
 
             # Creative Performance (per-post paid data)
-            creative_files = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_performance.csv')))
-            use_inbox = False
-            # Fallback: cerca in inbox/
-            if not creative_files:
-                creative_files = sorted(glob.glob(os.path.join(INBOX, 'account_*creative_performance*.csv')))
-                use_inbox = True
+            # Priorità: 1) nuovo export in inbox (poi archiviato come *_creative_report.csv)
+            #           2) ultimo report archiviato   3) legacy *_creative_performance.csv
+            inbox_creative  = sorted(glob.glob(os.path.join(INBOX, 'account_*creative_performance*.csv')))
+            report_creative = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_report.csv')))
+            legacy_creative = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_performance.csv')))
 
-            if creative_files:
-                try:
-                    # Usa parser diverso a seconda della fonte
-                    if use_inbox:
-                        all_creatives = parse_creative_performance_report(creative_files[-1])
-                    else:
-                        all_creatives = parse_creative_csv(creative_files[-1])
+            try:
+                all_creatives = None
+                if inbox_creative:
+                    src = inbox_creative[-1]
+                    all_creatives = parse_creative_performance_report(src)
+                    # archivia il raw e svuota l'inbox
+                    os.makedirs(ARCHIVE_CAMPAGNE, exist_ok=True)
+                    ts  = datetime.now().strftime('%Y-%m-%d')
+                    dst = os.path.join(ARCHIVE_CAMPAGNE, f'{ts}_creative_report.csv')
+                    if os.path.exists(dst):
+                        dst = dst.replace('.csv', f'_{datetime.now().strftime("%H%M%S")}.csv')
+                    shutil.copy2(src, dst)
+                    for old in inbox_creative:
+                        os.remove(old)
+                    print(f'  Archiviato: {os.path.basename(dst)}')
+                elif report_creative:
+                    all_creatives = parse_creative_performance_report(report_creative[-1])
+                elif legacy_creative:
+                    all_creatives = parse_creative_csv(legacy_creative[-1])
 
+                if all_creatives is not None:
                     krein_creatives = [r for r in all_creatives if r.get('camp_id') in {'987808183','1056604124'}]
                     if update_creative_data(krein_creatives):
                         print(f'  CREATIVE_DATA ✓  ({len(krein_creatives)} creative Krein)')
                     else:
                         print('  CREATIVE_DATA WARN: update fallito')
-                except Exception as e:
-                    print(f'  CREATIVE_DATA WARN: {e}')
-            else:
-                print('  ⚠  FILE MANCANTE: Creative Performance CSV')
-                print('     → Scarica da LinkedIn Campaign Manager → Reports → Creative Performance')
-                print(f'     → Salva in: inbox/')
+                else:
+                    print('  ⚠  FILE MANCANTE: Creative Performance CSV')
+                    print('     → Scarica da LinkedIn Campaign Manager → Reports → Creative Performance')
+                    print(f'     → Salva in: inbox/')
+            except Exception as e:
+                print(f'  CREATIVE_DATA WARN: {e}')
 
     # ══════════════════════════════════════════════════════════════
     # CLIENTE 2 — OPTIMEDIA
