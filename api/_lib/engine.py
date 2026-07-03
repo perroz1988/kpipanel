@@ -112,6 +112,139 @@ def to_iso(val):
     return None
 
 
+# ── DEMO LABELS EN→IT (GENERATO da scripts/gen_demo_labels.py — non editare) ──
+DEMO_LABELS_EN_IT = {
+    'Entry': 'Livello base',
+    'Manager': 'Amministratore',
+    'Director': 'Direttore',
+    'Owner': 'Proprietario',
+    'VP': 'Vicepresidente',
+    'Unpaid': 'Non retribuito',
+    'Sales': 'Vendite',
+    'Operations': 'Operazioni',
+    'Engineering': 'Ingegneria',
+    'Information Technology': 'Informatica',
+    'Purchasing': 'Acquisti',
+    'Program and Project Management': 'Program e Project Management',
+    'Customer Success and Support': 'Assistenza',
+    'Administrative': 'Amministrativo',
+    'Human Resources': 'Risorse umane',
+    'Arts and Design': 'Arte e design',
+    'Media and Communication': 'Media e comunicazione',
+    'Research': 'Ricerca',
+    'Education': 'Formazione',
+    'Quality Assurance': 'Controllo qualità',
+    'Finance': 'Finanza',
+    'Accounting': 'Contabilità',
+    'Community and Social Services': 'Comunità e servizi sociali',
+    'Real Estate': 'Immobiliare',
+    'Consulting': 'Consulenza',
+    'Entrepreneurship': 'Imprenditorialità',
+    'Legal': 'Legale',
+    'Military and Protective Services': 'Servizio militare e di protezione',
+    'Healthcare Services': 'Sanità',
+    'Appliances, Electrical, and Electronics Manufacturing': 'Fabbricazione di apparecchi elettrici, materiali elettrici e componenti elettronici',
+    'Industrial Machinery Manufacturing': 'Fabbricazione di macchinari industriali',
+    'Machinery Manufacturing': 'Produzione di macchinari',
+    'Automation Machinery Manufacturing': 'Fabbricazione di macchinari di automazione',
+    'IT Services and IT Consulting': 'Servizi IT e consulenza IT',
+    'Transportation, Logistics, Supply Chain and Storage': 'Trasporti, logistica, supply chain e stoccaggio',
+    'Business Consulting and Services': 'Consulenza e servizi aziendali',
+    'Motor Vehicle Manufacturing': 'Fabbricazione di autoveicoli',
+    'Wholesale': "Vendita all'ingrosso",
+    'Utilities': 'Servizi pubblici',
+    'Construction': 'Edilizia',
+    'Manufacturing': 'Industria manifatturiera',
+    'Oil and Gas': 'Petrolio e gas',
+    'Pharmaceutical Manufacturing': 'Fabbricazione di prodotti farmaceutici',
+    'Software Development': 'Sviluppo di software',
+    'Medical Equipment Manufacturing': 'Fabbricazione di apparecchiature medicali',
+    'Retail': 'Vendita al dettaglio',
+    'Food and Beverage Manufacturing': 'Fabbricazione di prodotti alimentari e bevande',
+    'Defense and Space Manufacturing': 'Fabbricazione di apparecchiature per il settore spaziale e della difesa',
+    'Telecommunications': 'Telecomunicazioni',
+    'Advertising Services': 'Servizi pubblicitari',
+    'Truck Transportation': 'Trasporto su strada',
+    'Chemical Manufacturing': 'Fabbricazione di prodotti chimici',
+    'Electrical Equipment Manufacturing': 'Fabbricazione di apparecchiature elettriche',
+    'Higher Education': 'Istruzione superiore',
+    'Retail Office Equipment': 'Vendita al dettaglio di attrezzature per ufficio',
+    'Plastics Manufacturing': 'Fabbricazione di materie plastiche',
+    'Aviation and Aerospace Component Manufacturing': 'Fabbricazione di componenti per il settore aeronautico e aerospaziale',
+    'Government Administration': 'Pubblica amministrazione',
+    'Semiconductor Manufacturing': 'Fabbricazione di semiconduttori',
+    'Research Services': 'Servizi di ricerca',
+    'Computers and Electronics Manufacturing': 'Fabbricazione di computer e apparecchiature elettroniche',
+    'Environmental Services': 'Servizi ambientali',
+    'International Trade and Development': 'Commercio internazionale e sviluppo',
+    'Mining': 'Attività minerarie',
+    'Packaging and Containers Manufacturing': 'Fabbricazione di materiali da imballaggio e contenitori',
+    'Renewable Energy Equipment Manufacturing': 'Produzione attrezzature energie rinnovabili',
+    'Human Resources Services': 'Servizi risorse umane',
+    'Engineering Services': 'Servizi ingegneristici',
+    'Hospitals and Health Care': 'Ospedali e strutture sanitarie',
+    'Facilities Services': 'Servizi infrastrutturali',
+    'Railroad Equipment Manufacturing': 'Fabbricazione di attrezzature ferroviarie',
+    'Financial Services': 'Servizi finanziari',
+    'Food and Beverage Services': 'Servizi per la ristorazione',
+    'Civil Engineering': 'Ingegneria civile',
+    'Staffing and Recruiting': 'Selezione e ricerca di personale',
+    'Wholesale Building Materials': 'Vendita all’ingrosso di materiali da costruzione',
+    'Banking': 'Settore bancario',
+    'Technology, Information and Internet': 'Tecnologia, informazioni e internet',
+    'Textile Manufacturing': 'Produzione tessile',
+    'Furniture and Home Furnishings Manufacturing': 'Fabbricazione di mobili e arredi per la casa',
+    'Design Services': 'Servizi di progettazione',
+    'Motor Vehicle Parts Manufacturing': 'Fabbricazione di parti per autoveicoli',
+    'Professional Training and Coaching': 'Coaching e formazione professionale',
+    'Metalworking Machinery Manufacturing': 'Fabbricazione di macchinari per la lavorazione dei metalli',
+    'Engines and Power Transmission Equipment Manufacturing': 'Fabbricazione di motori e apparecchiature per la trasmissione di potenza',
+    'Book and Periodical Publishing': 'Editoria: libri e pubblicazioni periodiche',
+    'Printing Services': 'Servizi di stampa',
+    'Airlines and Aviation': 'Linee aeree e aviazione',
+    'Freight and Package Transportation': 'Trasporto di merci e pacchi',
+    'Retail Apparel and Fashion': 'Vendita al dettaglio di abbigliamento e moda',
+    'Shipbuilding': 'Cantieri navali',
+    'Wholesale Machinery': 'Vendita all’ingrosso di macchinari',
+    'Maritime Transportation': 'Trasporto marittimo',
+    'Security and Investigations': 'Sicurezza e investigazioni',
+    'Rail Transportation': 'Trasporto ferroviario',
+    'Architecture and Planning': 'Architettura e pianificazione',
+    'Measuring and Control Instrument Manufacturing': 'Fabbricazione di strumenti di misurazione e controllo',
+    'Wholesale Motor Vehicles and Parts': 'Vendita all’ingrosso di autoveicoli e relative parti',
+    'Insurance': 'Assicurazioni',
+    'Marketing Services': 'Servizi di marketing',
+    'Computer and Network Security': 'Sicurezza informatica e delle reti',
+    'Non-profit Organizations': 'Organizzazioni senza scopo di lucro',
+    'Hospitality': 'Settore alberghiero',
+    'Internet Marketplace Platforms': 'Piattaforme di e-commerce',
+    'Metal Valve, Ball, and Roller Manufacturing': 'Fabbricazione di valvole metalliche, sfere e rulli',
+    'Consumer Services': 'Servizi ai consumatori',
+    'Restaurants': 'Ristoranti',
+    'Travel Arrangements': 'Organizzazione di viaggi',
+    'Steam and Air-Conditioning Supply': 'Fornitura di vapore e aria condizionata',
+    'Wellness and Fitness Services': 'Servizi benessere e fitness',
+    'Biotechnology Research': 'Ricerca biotecnologica',
+    'Paint, Coating, and Adhesive Manufacturing': 'Fabbricazione di vernici, rivestimenti e adesivi',
+    'Events Services': 'Servizi per eventi',
+    'Services for Renewable Energy': 'Servizi per energie rinnovabili',
+    'Law Practice': 'Studio legale',
+    'Computer Hardware Manufacturing': 'Fabbricazione di hardware per computer',
+    'Beverage Manufacturing': 'Produzione di bevande',
+    'Personal Care Product Manufacturing': 'Fabbricazione di prodotti per la cura personale',
+    'Solar Electric Power Generation': 'Produzione di energia elettrica solare',
+    'Medical Practices': 'Studi medici',
+    'Public Relations and Communications Services': 'Pubbliche Relazioni e servizi di comunicazione',
+    'Credit Intermediation': 'Intermediazione creditizia',
+    'Retail Art Supplies': 'Vendita al dettaglio di materiali artistici',
+    'Agriculture, Construction, Mining Machinery Manufacturing': "Fabbricazione di macchinari per l'agricoltura, l'edilizia e l'industria mineraria",
+    'Wholesale Import and Export': 'Importazione ed esportazione all’ingrosso',
+    'Spectator Sports': 'Sport professionistici',
+    'Farming': 'Agricoltura',
+}
+# ── FINE DEMO LABELS ──
+
+
 # ─── PARSER XLS ──────────────────────────────────────────────────────────────
 
 def _sheet(wb, *names):
@@ -123,6 +256,45 @@ def _sheet(wb, *names):
         except Exception:
             pass
     raise KeyError(f'Fogli {names} non trovati (presenti: {wb.sheet_names()})')
+
+
+_LOC_CITY_EN_IT = {
+    'Milan': 'Milano', 'Rome': 'Roma', 'Turin': 'Torino', 'Naples': 'Napoli',
+    'Genoa': 'Genova', 'Venice': 'Venezia', 'Florence': 'Firenze',
+    'Padova (Padua)': 'Padova', 'Livorno(Leghorn)': 'Livorno', 'Syracuse': 'Siracusa',
+    'Mantua': 'Mantova', 'Forli': 'Forlì',
+}
+
+
+def _normalize_localita(label):
+    """'Greater Milan Metropolitan Area, Italy' → 'Milano, Italia'.
+    Le voci estere e quelle già in italiano passano invariate."""
+    l = str(label).strip()
+    if ', Italy' not in l:
+        return l
+    core, changed = l, True
+    while changed:
+        changed = False
+        for suf in (', Italy', ' Metropolitan Area', ', Italy Area', ' Area'):
+            if core.endswith(suf):
+                core = core[:-len(suf)]
+                changed = True
+    if core.startswith('Greater '):
+        core = core[len('Greater '):]
+    core = core.strip().rstrip(',').strip()
+    core = _LOC_CITY_EN_IT.get(core, core)
+    return f'{core}, Italia'
+
+
+def _normalize_demo(demographics):
+    """Riporta le etichette demografiche all'italiano: lo storico della dashboard
+    (demographics_history, quote Manager/C-Level) confronta per etichetta."""
+    for key in ('anzianita', 'funzione', 'settore'):
+        for x in demographics.get(key, []):
+            x['label'] = DEMO_LABELS_EN_IT.get(x['label'], x['label'])
+    for x in demographics.get('localita', []):
+        x['label'] = _normalize_localita(x['label'])
+    return demographics
 
 
 def parse_content(path):
@@ -228,13 +400,13 @@ def parse_followers(path):
                 out.append({'label': str(row[key_col]).strip(), 'value': int(row[val_col])})
         return out
 
-    demographics = {
+    demographics = _normalize_demo({
         'localita':   parse_kv('Località', 'Location'),
         'funzione':   parse_kv('Funzione lavorativa', 'Job function'),
         'anzianita':  parse_kv('Anzianità', 'Seniority'),
         'settore':    parse_kv('Settore', 'Industry'),
         'dim_azienda': parse_kv("Dimensioni dell’azienda", 'Company size'),
-    }
+    })
 
     fan_base_totale = sum(x['value'] for x in demographics['anzianita'])
     return followers_daily, demographics, fan_base_totale
