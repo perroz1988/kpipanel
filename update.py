@@ -97,7 +97,190 @@ def to_iso(val):
     return None
 
 
+# ── DEMO LABELS EN→IT (GENERATO da scripts/gen_demo_labels.py — non editare) ──
+DEMO_LABELS_EN_IT = {
+    'Entry': 'Livello base',
+    'Manager': 'Amministratore',
+    'Director': 'Direttore',
+    'Owner': 'Proprietario',
+    'VP': 'Vicepresidente',
+    'Unpaid': 'Non retribuito',
+    'Sales': 'Vendite',
+    'Operations': 'Operazioni',
+    'Engineering': 'Ingegneria',
+    'Information Technology': 'Informatica',
+    'Purchasing': 'Acquisti',
+    'Program and Project Management': 'Program e Project Management',
+    'Customer Success and Support': 'Assistenza',
+    'Administrative': 'Amministrativo',
+    'Human Resources': 'Risorse umane',
+    'Arts and Design': 'Arte e design',
+    'Media and Communication': 'Media e comunicazione',
+    'Research': 'Ricerca',
+    'Education': 'Formazione',
+    'Quality Assurance': 'Controllo qualità',
+    'Finance': 'Finanza',
+    'Accounting': 'Contabilità',
+    'Community and Social Services': 'Comunità e servizi sociali',
+    'Real Estate': 'Immobiliare',
+    'Consulting': 'Consulenza',
+    'Entrepreneurship': 'Imprenditorialità',
+    'Legal': 'Legale',
+    'Military and Protective Services': 'Servizio militare e di protezione',
+    'Healthcare Services': 'Sanità',
+    'Appliances, Electrical, and Electronics Manufacturing': 'Fabbricazione di apparecchi elettrici, materiali elettrici e componenti elettronici',
+    'Industrial Machinery Manufacturing': 'Fabbricazione di macchinari industriali',
+    'Machinery Manufacturing': 'Produzione di macchinari',
+    'Automation Machinery Manufacturing': 'Fabbricazione di macchinari di automazione',
+    'IT Services and IT Consulting': 'Servizi IT e consulenza IT',
+    'Transportation, Logistics, Supply Chain and Storage': 'Trasporti, logistica, supply chain e stoccaggio',
+    'Business Consulting and Services': 'Consulenza e servizi aziendali',
+    'Motor Vehicle Manufacturing': 'Fabbricazione di autoveicoli',
+    'Wholesale': "Vendita all'ingrosso",
+    'Utilities': 'Servizi pubblici',
+    'Construction': 'Edilizia',
+    'Manufacturing': 'Industria manifatturiera',
+    'Oil and Gas': 'Petrolio e gas',
+    'Pharmaceutical Manufacturing': 'Fabbricazione di prodotti farmaceutici',
+    'Software Development': 'Sviluppo di software',
+    'Medical Equipment Manufacturing': 'Fabbricazione di apparecchiature medicali',
+    'Retail': 'Vendita al dettaglio',
+    'Food and Beverage Manufacturing': 'Fabbricazione di prodotti alimentari e bevande',
+    'Defense and Space Manufacturing': 'Fabbricazione di apparecchiature per il settore spaziale e della difesa',
+    'Telecommunications': 'Telecomunicazioni',
+    'Advertising Services': 'Servizi pubblicitari',
+    'Truck Transportation': 'Trasporto su strada',
+    'Chemical Manufacturing': 'Fabbricazione di prodotti chimici',
+    'Electrical Equipment Manufacturing': 'Fabbricazione di apparecchiature elettriche',
+    'Higher Education': 'Istruzione superiore',
+    'Retail Office Equipment': 'Vendita al dettaglio di attrezzature per ufficio',
+    'Plastics Manufacturing': 'Fabbricazione di materie plastiche',
+    'Aviation and Aerospace Component Manufacturing': 'Fabbricazione di componenti per il settore aeronautico e aerospaziale',
+    'Government Administration': 'Pubblica amministrazione',
+    'Semiconductor Manufacturing': 'Fabbricazione di semiconduttori',
+    'Research Services': 'Servizi di ricerca',
+    'Computers and Electronics Manufacturing': 'Fabbricazione di computer e apparecchiature elettroniche',
+    'Environmental Services': 'Servizi ambientali',
+    'International Trade and Development': 'Commercio internazionale e sviluppo',
+    'Mining': 'Attività minerarie',
+    'Packaging and Containers Manufacturing': 'Fabbricazione di materiali da imballaggio e contenitori',
+    'Renewable Energy Equipment Manufacturing': 'Produzione attrezzature energie rinnovabili',
+    'Human Resources Services': 'Servizi risorse umane',
+    'Engineering Services': 'Servizi ingegneristici',
+    'Hospitals and Health Care': 'Ospedali e strutture sanitarie',
+    'Facilities Services': 'Servizi infrastrutturali',
+    'Railroad Equipment Manufacturing': 'Fabbricazione di attrezzature ferroviarie',
+    'Financial Services': 'Servizi finanziari',
+    'Food and Beverage Services': 'Servizi per la ristorazione',
+    'Civil Engineering': 'Ingegneria civile',
+    'Staffing and Recruiting': 'Selezione e ricerca di personale',
+    'Wholesale Building Materials': 'Vendita all’ingrosso di materiali da costruzione',
+    'Banking': 'Settore bancario',
+    'Technology, Information and Internet': 'Tecnologia, informazioni e internet',
+    'Textile Manufacturing': 'Produzione tessile',
+    'Furniture and Home Furnishings Manufacturing': 'Fabbricazione di mobili e arredi per la casa',
+    'Design Services': 'Servizi di progettazione',
+    'Motor Vehicle Parts Manufacturing': 'Fabbricazione di parti per autoveicoli',
+    'Professional Training and Coaching': 'Coaching e formazione professionale',
+    'Metalworking Machinery Manufacturing': 'Fabbricazione di macchinari per la lavorazione dei metalli',
+    'Engines and Power Transmission Equipment Manufacturing': 'Fabbricazione di motori e apparecchiature per la trasmissione di potenza',
+    'Book and Periodical Publishing': 'Editoria: libri e pubblicazioni periodiche',
+    'Printing Services': 'Servizi di stampa',
+    'Airlines and Aviation': 'Linee aeree e aviazione',
+    'Freight and Package Transportation': 'Trasporto di merci e pacchi',
+    'Retail Apparel and Fashion': 'Vendita al dettaglio di abbigliamento e moda',
+    'Shipbuilding': 'Cantieri navali',
+    'Wholesale Machinery': 'Vendita all’ingrosso di macchinari',
+    'Maritime Transportation': 'Trasporto marittimo',
+    'Security and Investigations': 'Sicurezza e investigazioni',
+    'Rail Transportation': 'Trasporto ferroviario',
+    'Architecture and Planning': 'Architettura e pianificazione',
+    'Measuring and Control Instrument Manufacturing': 'Fabbricazione di strumenti di misurazione e controllo',
+    'Wholesale Motor Vehicles and Parts': 'Vendita all’ingrosso di autoveicoli e relative parti',
+    'Insurance': 'Assicurazioni',
+    'Marketing Services': 'Servizi di marketing',
+    'Computer and Network Security': 'Sicurezza informatica e delle reti',
+    'Non-profit Organizations': 'Organizzazioni senza scopo di lucro',
+    'Hospitality': 'Settore alberghiero',
+    'Internet Marketplace Platforms': 'Piattaforme di e-commerce',
+    'Metal Valve, Ball, and Roller Manufacturing': 'Fabbricazione di valvole metalliche, sfere e rulli',
+    'Consumer Services': 'Servizi ai consumatori',
+    'Restaurants': 'Ristoranti',
+    'Travel Arrangements': 'Organizzazione di viaggi',
+    'Steam and Air-Conditioning Supply': 'Fornitura di vapore e aria condizionata',
+    'Wellness and Fitness Services': 'Servizi benessere e fitness',
+    'Biotechnology Research': 'Ricerca biotecnologica',
+    'Paint, Coating, and Adhesive Manufacturing': 'Fabbricazione di vernici, rivestimenti e adesivi',
+    'Events Services': 'Servizi per eventi',
+    'Services for Renewable Energy': 'Servizi per energie rinnovabili',
+    'Law Practice': 'Studio legale',
+    'Computer Hardware Manufacturing': 'Fabbricazione di hardware per computer',
+    'Beverage Manufacturing': 'Produzione di bevande',
+    'Personal Care Product Manufacturing': 'Fabbricazione di prodotti per la cura personale',
+    'Solar Electric Power Generation': 'Produzione di energia elettrica solare',
+    'Medical Practices': 'Studi medici',
+    'Public Relations and Communications Services': 'Pubbliche Relazioni e servizi di comunicazione',
+    'Credit Intermediation': 'Intermediazione creditizia',
+    'Retail Art Supplies': 'Vendita al dettaglio di materiali artistici',
+    'Agriculture, Construction, Mining Machinery Manufacturing': "Fabbricazione di macchinari per l'agricoltura, l'edilizia e l'industria mineraria",
+    'Wholesale Import and Export': 'Importazione ed esportazione all’ingrosso',
+    'Spectator Sports': 'Sport professionistici',
+    'Farming': 'Agricoltura',
+}
+# ── FINE DEMO LABELS ──
+
+
 # ─── PARSER XLS ──────────────────────────────────────────────────────────────
+
+def _sheet(wb, *names):
+    """Primo foglio esistente tra i nomi dati (LinkedIn esporta in IT o EN
+    a seconda della lingua dell'interfaccia — la struttura è identica)."""
+    for n in names:
+        try:
+            return wb.sheet_by_name(n)
+        except Exception:
+            pass
+    raise KeyError(f'Fogli {names} non trovati (presenti: {wb.sheet_names()})')
+
+
+_LOC_CITY_EN_IT = {
+    'Milan': 'Milano', 'Rome': 'Roma', 'Turin': 'Torino', 'Naples': 'Napoli',
+    'Genoa': 'Genova', 'Venice': 'Venezia', 'Florence': 'Firenze',
+    'Padova (Padua)': 'Padova', 'Livorno(Leghorn)': 'Livorno', 'Syracuse': 'Siracusa',
+    'Mantua': 'Mantova', 'Forli': 'Forlì',
+}
+
+
+def _normalize_localita(label):
+    """'Greater Milan Metropolitan Area, Italy' → 'Milano, Italia'.
+    Le voci estere e quelle già in italiano passano invariate."""
+    l = str(label).strip()
+    if ', Italy' not in l:
+        return l
+    core, changed = l, True
+    while changed:
+        changed = False
+        for suf in (', Italy', ' Metropolitan Area', ', Italy Area', ' Area'):
+            if core.endswith(suf):
+                core = core[:-len(suf)]
+                changed = True
+    if core.startswith('Greater '):
+        core = core[len('Greater '):]
+    core = core.strip().rstrip(',').strip()
+    core = _LOC_CITY_EN_IT.get(core, core)
+    return f'{core}, Italia'
+
+
+def _normalize_demo(demographics):
+    """Riporta le etichette demografiche all'italiano: lo storico della dashboard
+    (demographics_history, quote Manager/C-Level) confronta per etichetta."""
+    for key in ('anzianita', 'funzione', 'settore'):
+        for x in demographics.get(key, []):
+            x['label'] = DEMO_LABELS_EN_IT.get(x['label'], x['label'])
+    for x in demographics.get('localita', []):
+        x['label'] = _normalize_localita(x['label'])
+    return demographics
+
 
 def parse_content(path):
     """Estrae metriche giornaliere e lista post da un content XLS di LinkedIn."""
@@ -105,7 +288,7 @@ def parse_content(path):
 
     # ---- Metriche (riga 0 = descrizione lunga, riga 1 = headers, riga 2+ = dati)
     metriche = []
-    sheet = wb.sheet_by_name('Metriche')
+    sheet = _sheet(wb, 'Metriche', 'Metrics')
     for r in range(2, sheet.nrows):
         row = sheet.row_values(r)
         date = to_iso(row[0])
@@ -138,7 +321,7 @@ def parse_content(path):
 
     # ---- Post (riga 0 = descrizione, riga 1 = headers, riga 2+ = dati)
     posts = []
-    sheet2 = wb.sheet_by_name('Tutti i post')
+    sheet2 = _sheet(wb, 'Tutti i post', 'All posts')
     for r in range(2, sheet2.nrows):
         row = sheet2.row_values(r)
         if not row[0]:
@@ -178,9 +361,9 @@ def parse_followers(path):
 
     # ---- Nuovi follower
     followers_daily = []
-    sheet = wb.sheet_by_name('Nuovi follower')
+    sheet = _sheet(wb, 'Nuovi follower', 'New followers')
     headers = [str(v).strip() for v in sheet.row_values(0)]
-    has_totale = 'Follower totali' in headers
+    has_totale = 'Follower totali' in headers or 'Total followers' in headers
 
     for r in range(1, sheet.nrows):
         row = sheet.row_values(r)
@@ -193,8 +376,8 @@ def parse_followers(path):
         tot  = int(row[4]) if has_totale and len(row) > 4 and row[4] else spon + org + auto
         followers_daily.append({'data': date, 'spon': spon, 'org': org, 'auto': auto, 'tot': tot})
 
-    def parse_kv(sheet_name, key_col=0, val_col=1):
-        s = wb.sheet_by_name(sheet_name)
+    def parse_kv(*sheet_names, key_col=0, val_col=1):
+        s = _sheet(wb, *sheet_names)
         out = []
         for r in range(1, s.nrows):
             row = s.row_values(r)
@@ -202,13 +385,13 @@ def parse_followers(path):
                 out.append({'label': str(row[key_col]).strip(), 'value': int(row[val_col])})
         return out
 
-    demographics = {
-        'localita':   parse_kv('Località'),
-        'funzione':   parse_kv('Funzione lavorativa'),
-        'anzianita':  parse_kv('Anzianità'),
-        'settore':    parse_kv('Settore'),
-        'dim_azienda': parse_kv("Dimensioni dell’azienda"),
-    }
+    demographics = _normalize_demo({
+        'localita':   parse_kv('Località', 'Location'),
+        'funzione':   parse_kv('Funzione lavorativa', 'Job function'),
+        'anzianita':  parse_kv('Anzianità', 'Seniority'),
+        'settore':    parse_kv('Settore', 'Industry'),
+        'dim_azienda': parse_kv("Dimensioni dell’azienda", 'Company size'),
+    })
 
     fan_base_totale = sum(x['value'] for x in demographics['anzianita'])
     return followers_daily, demographics, fan_base_totale
@@ -224,10 +407,10 @@ def archive_new_file(src_path, kind):
     """
     wb = xlrd.open_workbook(src_path)
     if kind == 'content':
-        sheet = wb.sheet_by_name('Metriche')
+        sheet = _sheet(wb, 'Metriche', 'Metrics')
         dates = [to_iso(sheet.row_values(r)[0]) for r in range(2, sheet.nrows)]
     else:
-        sheet = wb.sheet_by_name('Nuovi follower')
+        sheet = _sheet(wb, 'Nuovi follower', 'New followers')
         dates = [to_iso(sheet.row_values(r)[0]) for r in range(1, sheet.nrows)]
 
     dates = [d for d in dates if d]
@@ -1467,62 +1650,91 @@ def parse_campaign_csv(path):
 
 
 def parse_creative_performance_report(path):
-    """Parsa il Creative Performance Report di LinkedIn (usa CSV reader).
-    Colonne: 19=Ad ID, 21=Ad Intro, 27=Spent, 28=Imp, 29=Clicks, 30=CTR,
-    33=Reactions, 34=Comments, 35=Shares, 40=ER, 63=Reach"""
+    """Parsa l'Ad/Creative Performance Report di LinkedIn Campaign Manager
+    (TSV utf-16). Le colonne VARIANO da export a export (dipendono dalle
+    feature dell'account), quindi si mappano per intestazione, non per posizione."""
     import csv
     with open(path, 'r', encoding='utf-16') as f:
-        reader = csv.reader(f, delimiter='\t')
-        lines = list(reader)
+        lines = list(csv.reader(f, delimiter='\t'))
 
-    # Riga 5 = header (0-indexed)
-    if len(lines) < 6:
+    # trova la riga header (le prime righe sono il preambolo del report)
+    hdr_idx = next((i for i, cells in enumerate(lines[:20])
+                    if 'Campaign ID' in cells and 'Impressions' in cells), None)
+    if hdr_idx is None:
         return []
 
-    def fv(cells, i):
+    col = {name.strip(): i for i, name in enumerate(lines[hdr_idx])}
+
+    def idx(*names):
+        for n in names:
+            if n in col:
+                return col[n]
+        return None
+
+    C = {
+        'camp_id':     idx('Campaign ID'),
+        'camp_name':   idx('Campaign Name'),
+        'ad_name':     idx('Ad Name'),
+        'ad_id':       idx('Ad ID'),
+        'ad_intro':    idx('Ad Introduction Text'),
+        'click_url':   idx('Click URL'),
+        'spent':       idx('Total Spent'),
+        'impressions': idx('Impressions'),
+        'clicks':      idx('Clicks'),
+        'reactions':   idx('Reactions'),
+        'comments':    idx('Comments'),
+        'shares':      idx('Shares'),
+        'er':          idx('Engagement Rate'),
+        'reach':       idx('Reach'),
+        'leads':       idx('Leads'),
+    }
+
+    def sv(cells, key):
+        i = C.get(key)
+        return cells[i].strip() if i is not None and i < len(cells) else ''
+
+    def fv(cells, key):
         try:
-            val = str(cells[i]).strip().replace(',','').replace('%','')
-            return float(val) if i < len(cells) and val else 0.0
-        except:
+            val = sv(cells, key).replace(',', '').replace('%', '')
+            return float(val) if val else 0.0
+        except (ValueError, TypeError):
             return 0.0
 
     rows = []
-    for cells in lines[6:]:
-        if not cells or len(cells) < 40:
+    for cells in lines[hdr_idx + 1:]:
+        if not cells or len(cells) < 10:
             continue
-        try:
-            imp_str = cells[28].strip().replace(',','')
-            clk_str = cells[29].strip().replace(',','')
-            camp_name = cells[4].strip() if len(cells) > 4 else ''
-            post_text = cells[21].strip() if len(cells) > 21 else ''
+        if not sv(cells, 'impressions') or not sv(cells, 'clicks'):
+            continue
 
-            if not imp_str or not clk_str:
-                continue
-
-            # Inferisci camp_id dal campaign name
-            camp_id = '0'
+        camp_name = sv(cells, 'camp_name')
+        camp_id   = sv(cells, 'camp_id')
+        if not camp_id:
+            # fallback storico: inferenza dal nome campagna / testo ad
+            post_text = sv(cells, 'ad_intro')
             if 'MRO' in camp_name or 'MRO' in post_text:
                 camp_id = '987808183'
             elif 'Amplification' in camp_name or 'Always On' in camp_name:
                 camp_id = '1056604124'
+            else:
+                camp_id = '0'
 
-            rows.append({
-                'camp_id': camp_id,
-                'camp_name': '',
-                'ad_name': cells[18].strip() if len(cells) > 18 else '',
-                'click_url': cells[24].strip() if len(cells) > 24 else '',
-                'spent': fv(cells, 27),
-                'impressions': fv(cells, 28),
-                'clicks': fv(cells, 29),
-                'reactions': fv(cells, 33),
-                'comments': fv(cells, 34),
-                'shares': fv(cells, 35),
-                'er': fv(cells, 40),
-                'reach': fv(cells, 63),
-                'leads': 0.0,
-            })
-        except (ValueError, IndexError):
-            pass
+        rows.append({
+            'camp_id': camp_id,
+            'camp_name': '',
+            'ad_name': sv(cells, 'ad_name') or sv(cells, 'ad_intro')[:80] or sv(cells, 'ad_id'),
+            'click_url': sv(cells, 'click_url'),
+            'post_text': sv(cells, 'ad_intro')[:500],  # per il matching coi post organici
+            'spent': fv(cells, 'spent'),
+            'impressions': fv(cells, 'impressions'),
+            'clicks': fv(cells, 'clicks'),
+            'reactions': fv(cells, 'reactions'),
+            'comments': fv(cells, 'comments'),
+            'shares': fv(cells, 'shares'),
+            'er': fv(cells, 'er'),
+            'reach': fv(cells, 'reach'),
+            'leads': fv(cells, 'leads'),
+        })
 
     return rows
 
@@ -1666,9 +1878,9 @@ def _sniff_xls_kind(path):
     try:
         wb = xlrd.open_workbook(path)
         names = [s.lower() for s in wb.sheet_names()]
-        if 'metriche' in names or 'tutti i post' in names:
+        if 'metriche' in names or 'tutti i post' in names or 'all posts' in names:
             return 'content'
-        if 'nuovi follower' in names:
+        if 'nuovi follower' in names or 'new followers' in names:
             return 'followers'
     except Exception:
         pass
@@ -1836,32 +2048,44 @@ def main():
                 print(f'     → Metti in: inbox/rs-italia/')
 
             # Creative Performance (per-post paid data)
-            creative_files = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_performance.csv')))
-            use_inbox = False
-            # Fallback: cerca in inbox/
-            if not creative_files:
-                creative_files = sorted(glob.glob(os.path.join(INBOX, 'account_*creative_performance*.csv')))
-                use_inbox = True
+            # Priorità: 1) nuovo export in inbox (poi archiviato come *_creative_report.csv)
+            #           2) ultimo report archiviato   3) legacy *_creative_performance.csv
+            inbox_creative  = sorted(glob.glob(os.path.join(INBOX, 'account_*creative_performance*.csv')))
+            report_creative = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_report.csv')))
+            legacy_creative = sorted(glob.glob(os.path.join(ARCHIVE_CAMPAGNE, '????-??-??_creative_performance.csv')))
 
-            if creative_files:
-                try:
-                    # Usa parser diverso a seconda della fonte
-                    if use_inbox:
-                        all_creatives = parse_creative_performance_report(creative_files[-1])
-                    else:
-                        all_creatives = parse_creative_csv(creative_files[-1])
+            try:
+                all_creatives = None
+                if inbox_creative:
+                    src = inbox_creative[-1]
+                    all_creatives = parse_creative_performance_report(src)
+                    # archivia il raw e svuota l'inbox
+                    os.makedirs(ARCHIVE_CAMPAGNE, exist_ok=True)
+                    ts  = datetime.now().strftime('%Y-%m-%d')
+                    dst = os.path.join(ARCHIVE_CAMPAGNE, f'{ts}_creative_report.csv')
+                    if os.path.exists(dst):
+                        dst = dst.replace('.csv', f'_{datetime.now().strftime("%H%M%S")}.csv')
+                    shutil.copy2(src, dst)
+                    for old in inbox_creative:
+                        os.remove(old)
+                    print(f'  Archiviato: {os.path.basename(dst)}')
+                elif report_creative:
+                    all_creatives = parse_creative_performance_report(report_creative[-1])
+                elif legacy_creative:
+                    all_creatives = parse_creative_csv(legacy_creative[-1])
 
+                if all_creatives is not None:
                     krein_creatives = [r for r in all_creatives if r.get('camp_id') in {'987808183','1056604124'}]
                     if update_creative_data(krein_creatives):
                         print(f'  CREATIVE_DATA ✓  ({len(krein_creatives)} creative Krein)')
                     else:
                         print('  CREATIVE_DATA WARN: update fallito')
-                except Exception as e:
-                    print(f'  CREATIVE_DATA WARN: {e}')
-            else:
-                print('  ⚠  FILE MANCANTE: Creative Performance CSV')
-                print('     → Scarica da LinkedIn Campaign Manager → Reports → Creative Performance')
-                print(f'     → Salva in: inbox/')
+                else:
+                    print('  ⚠  FILE MANCANTE: Creative Performance CSV')
+                    print('     → Scarica da LinkedIn Campaign Manager → Reports → Creative Performance')
+                    print(f'     → Salva in: inbox/')
+            except Exception as e:
+                print(f'  CREATIVE_DATA WARN: {e}')
 
     # ══════════════════════════════════════════════════════════════
     # CLIENTE 2 — OPTIMEDIA
