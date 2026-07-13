@@ -193,6 +193,9 @@ html,body { margin:0; padding:0; background:var(--bg); color:var(--text); font-f
 .exp-period-row label { display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer; padding:6px 12px; border:1px solid var(--border); border-radius:6px; font-weight:500; }
 .exp-period-row input[type=radio] { accent-color:var(--li-blue); }
 .exp-period-row label:has(input:checked) { border-color:var(--li-blue); background:oklch(44% 0.168 255.5 / 0.07); color:var(--li-blue); }
+.exp-sub { display:flex; align-items:center; gap:8px; margin-top:10px; flex-wrap:wrap; }
+.exp-sub-label { font-size:12px; color:var(--text-2); }
+.exp-sub input[type=date], .exp-sub select { padding:6px 8px; border:1px solid var(--border); border-radius:6px; background:var(--card); color:var(--text); font-size:13px; }
 .exp-tab-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); gap:12px; }
 .exp-tab-row:last-child { border-bottom:none; }
 .exp-tab-check { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:500; cursor:pointer; }
@@ -2583,6 +2586,17 @@ render();
         <label><input type="radio" name="expPeriod" value="settimanale"> Settimanale</label>
         <label><input type="radio" name="expPeriod" value="mensile"> Mensile</label>
         <label><input type="radio" name="expPeriod" value="storico" checked> Storico</label>
+        <label><input type="radio" name="expPeriod" value="custom"> Custom</label>
+      </div>
+      <div class="exp-sub" id="expMonthRow" style="display:none">
+        <label class="exp-sub-label" for="expMonthSel">Mese</label>
+        <select id="expMonthSel"></select>
+      </div>
+      <div class="exp-sub" id="expCustomRow" style="display:none">
+        <label class="exp-sub-label" for="expDateFrom">Da</label>
+        <input type="date" id="expDateFrom">
+        <label class="exp-sub-label" for="expDateTo">a</label>
+        <input type="date" id="expDateTo">
       </div>
     </div>
 
@@ -2659,10 +2673,83 @@ render();
     });
   }
 
-  function periodLabel(p){ return {settimanale:'Settimanale',mensile:'Mensile',storico:'Storico'}[p]||p; }
+  function periodLabel(p){ return {settimanale:'Settimanale',mensile:'Mensile',storico:'Storico',custom:'Custom'}[p]||p; }
+
+  function dataSpan(){
+    const all = [
+      ...RS_DATA.metriche.map(m=>m.data),
+      ...RS_DATA.followers_daily.map(f=>f.data),
+      ...RS_DATA.posts.map(p=>p.data_creazione).filter(Boolean),
+      ...(typeof CAMP_DATA!=='undefined' ? (CAMP_DATA.daily||[]).map(d=>d.date) : []),
+    ].sort();
+    return { min: all[0], max: all[all.length-1] };
+  }
+
+  function monthName(ym){
+    const [y,m] = ym.split('-').map(Number);
+    const s = new Date(y, m-1, 1).toLocaleDateString('it-IT', {month:'long', year:'numeric'});
+    return s.charAt(0).toUpperCase()+s.slice(1);
+  }
+
+  function buildMonthOptions(){
+    const span = dataSpan();
+    const sel = document.getElementById('expMonthSel');
+    sel.innerHTML = '';
+    let y = +span.min.slice(0,4), m = +span.min.slice(5,7);
+    const ey = +span.max.slice(0,4), em = +span.max.slice(5,7);
+    const months = [];
+    while(y < ey || (y === ey && m <= em)){
+      months.push(`${y}-${String(m).padStart(2,'0')}`);
+      m++; if(m > 12){ m = 1; y++; }
+    }
+    months.reverse().forEach(ym => {
+      const opt = document.createElement('option');
+      opt.value = ym;
+      opt.textContent = monthName(ym);
+      sel.appendChild(opt);
+    });
+  }
+
+  function syncPeriodSubRows(){
+    const p = document.querySelector('input[name="expPeriod"]:checked')?.value;
+    document.getElementById('expMonthRow').style.display  = p==='mensile' ? 'flex' : 'none';
+    document.getElementById('expCustomRow').style.display = p==='custom'  ? 'flex' : 'none';
+  }
+  document.querySelectorAll('input[name="expPeriod"]').forEach(r =>
+    r.addEventListener('change', syncPeriodSubRows));
 
   async function doExport(isAdmin){
     const period = document.querySelector('input[name="expPeriod"]:checked')?.value || 'storico';
+
+    // Range esplicito per Mensile (mese scelto) e Custom (da/a)
+    let exportRange = null;
+    let periodTitle = periodLabel(period);
+    let fileSlug = period;
+    if(period === 'mensile'){
+      const ym = document.getElementById('expMonthSel').value;
+      if(ym){
+        const span = dataSpan();
+        const [y,m] = ym.split('-').map(Number);
+        const from = `${ym}-01`;
+        const to = `${ym}-${String(new Date(y, m, 0).getDate()).padStart(2,'0')}`;
+        exportRange = {
+          from: from < span.min ? span.min : from,
+          to:   to   > span.max ? span.max : to,
+        };
+        periodTitle = `Mensile — ${monthName(ym)}`;
+        fileSlug = `mensile-${ym}`;
+      }
+    }
+    if(period === 'custom'){
+      const f = document.getElementById('expDateFrom').value;
+      const t = document.getElementById('expDateTo').value;
+      if(!f || !t || f > t){ alert('Seleziona un intervallo di date valido (da ≤ a).'); return; }
+      exportRange = { from:f, to:t };
+      const fmt = iso => iso.split('-').reverse().join('/');
+      periodTitle = `Custom ${fmt(f)} – ${fmt(t)}`;
+      fileSlug = `custom-${f}_${t}`;
+    }
+
     const selected = [];
     document.querySelectorAll('#expTabList input[type=checkbox]:checked').forEach(cb => {
       const id = cb.dataset.tab;
@@ -2678,9 +2765,17 @@ render();
     // save state
     const prevPeriod = state.period;
     const prevTab    = state.tab;
+    const prevCustomFrom = state.customFrom;
+    const prevCustomTo   = state.customTo;
 
-    // set period
-    state.period = period;
+    // set period: con range esplicito (mese scelto o custom) passa da state custom
+    if(exportRange){
+      state.period = 'custom';
+      state.customFrom = exportRange.from;
+      state.customTo   = exportRange.to;
+    } else {
+      state.period = period;
+    }
     const r = getRange();
 
     const renders = {
@@ -2737,6 +2832,8 @@ render();
     // restore state
     state.period = prevPeriod;
     state.tab    = prevTab;
+    state.customFrom = prevCustomFrom;
+    state.customTo   = prevCustomTo;
     render();
 
     const now = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
@@ -2745,7 +2842,7 @@ render();
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RS Italia – LinkedIn Dashboard · ${periodLabel(period)}</title>
+<title>RS Italia – LinkedIn Dashboard · ${periodTitle}</title>
 <style>
 ${getInlineCSS()}
 body { padding:0; margin:0; }
@@ -2761,7 +2858,7 @@ body { padding:0; margin:0; }
 <body>
 <div class="export-header">
   <h1>RS Italia – LinkedIn Dashboard</h1>
-  <div class="meta">Periodo: <b>${periodLabel(period)}</b> · Esportato il ${now}</div>
+  <div class="meta">Periodo: <b>${periodTitle}</b> · Esportato il ${now}</div>
 </div>
 <div class="export-body">
 ${sections.join('\n')}
@@ -2772,7 +2869,7 @@ ${sections.join('\n')}
     const blob = new Blob([html], { type:'text/html;charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `rs-italia-dashboard-${period}-${new Date().toISOString().slice(0,10)}.html`;
+    a.download = `rs-italia-dashboard-${fileSlug}-${new Date().toISOString().slice(0,10)}.html`;
     a.click();
     URL.revokeObjectURL(a.href);
 
@@ -2785,6 +2882,15 @@ ${sections.join('\n')}
   let _isAdmin = false;
   document.getElementById('exportHtmlBtn').addEventListener('click', () => {
     buildTabList(_isAdmin);
+    buildMonthOptions();
+    // preseleziona il periodo attivo in dashboard e precompila le date custom
+    const radio = document.querySelector(`input[name="expPeriod"][value="${state.period}"]`)
+               || document.querySelector('input[name="expPeriod"][value="storico"]');
+    radio.checked = true;
+    const r = getRange();
+    document.getElementById('expDateFrom').value = state.customFrom || r.from;
+    document.getElementById('expDateTo').value   = state.customTo   || r.to;
+    syncPeriodSubRows();
     document.getElementById('exportOverlay').style.display = 'flex';
   });
   document.getElementById('expCancelBtn').addEventListener('click', () => {
