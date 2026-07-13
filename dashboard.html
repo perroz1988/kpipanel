@@ -397,7 +397,15 @@ body.print-mode .row-4, body.print-mode .card, body.print-mode .kpi { break-insi
 </style>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js" integrity="sha384-iU8HYtnGQ8Cy4zl7gbNMOhsDTTKX02BTXptVP/vqAWIaTfM7isw76iyZCsjL2eVi" crossorigin="anonymous"></script>
 <style id="auth-veil">html{visibility:hidden}</style>
-<style>html:not(.is-admin) #missingBanner{display:none!important}</style>
+<style>html:not(.is-admin) #missingBanner{display:none!important}
+html:not(.is-admin) #reimportBadge{display:none!important}
+#reimportBadge{position:sticky;top:0;z-index:800;display:none;align-items:center;gap:14px;margin:0;padding:14px 20px;background:oklch(62% 0.19 25);color:#fff;font-size:14px;font-weight:600;box-shadow:0 3px 14px rgba(0,0,0,.22);border-bottom:2px solid oklch(52% 0.19 25)}
+#reimportBadge .rb-dot{flex:none;width:11px;height:11px;border-radius:50%;background:#fff;animation:rbPulse 1.4s ease-in-out infinite}
+#reimportBadge .rb-txt{flex:1;line-height:1.45}
+#reimportBadge .rb-txt b{font-weight:800}
+#reimportBadge a.rb-cta{flex:none;background:#fff;color:oklch(55% 0.19 25);text-decoration:none;padding:8px 16px;border-radius:7px;font-size:13px;font-weight:800;white-space:nowrap}
+#reimportBadge a.rb-cta:hover{background:oklch(96% 0.02 60)}
+@keyframes rbPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.7)}}
 <script>
 fetch('/api/auth/verify')
   .then(r => { if (!r.ok) throw 0; return r.json(); })
@@ -442,6 +450,17 @@ fetch('/api/auth/verify')
         <button class="logout-btn" id="logoutBtn" title="Esci">⏻ Esci</button>
       </div>
     </div>
+  </div>
+
+  <!-- ============ BADGE RE-IMPORT FINE MESE (fisso, non chiudibile) ============ -->
+  <div id="reimportBadge">
+    <span class="rb-dot"></span>
+    <span class="rb-txt">
+      <b>Conteggio di fine mese da importare.</b>
+      Prima di preparare il report di <b id="reimportMese">—</b>, carica l'export <b>Contenuti</b> di fine mese
+      (LinkedIn Page Analytics → Contenuti) nell'Area admin: il motore ricontrolla e corregge i numeri definitivi dei post.
+    </span>
+    <a class="rb-cta" href="/upload">Vai all'Area admin →</a>
   </div>
 
   <!-- ============ BANNER FILE MANCANTI ============ -->
@@ -1117,8 +1136,32 @@ function thumbHTML(post, size='sm'){
   return `<div class="${cls}" title="Carica immagine come ${post.data_creazione}.jpg in rs-italia-post-images/">RS</div>`;
 }
 
+/* ============ BADGE RE-IMPORT FINE MESE ============
+   Al cambio mese, se i dati non sono stati riaggiornati dopo il 1°,
+   mostra un badge fisso (non chiudibile) che ricorda di caricare
+   l'export Contenuti di fine mese per finalizzare i numeri dei post.
+   Si auto-cancella quando ultimo_aggiornamento entra nel mese corrente. */
+function checkMonthlyReimport(){
+  const badge = document.getElementById('reimportBadge');
+  if(!badge) return;
+  const now = new Date();
+  const firstOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastIso = RS_DATA?.meta?.ultimo_aggiornamento || null;
+  const last = lastIso ? parseISO(lastIso) : null;
+  const needsReimport = !last || last < firstOfThisMonth;
+  if(needsReimport){
+    const prev = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const mese = prev.toLocaleDateString('it-IT',{month:'long',year:'numeric'});
+    document.getElementById('reimportMese').textContent = mese.charAt(0).toUpperCase()+mese.slice(1);
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
 // Controlla file mancanti al primo caricamento
 checkMissingData();
+checkMonthlyReimport();
 
 /* ============ RENDERERS ============ */
 function renderCoverage(r){
