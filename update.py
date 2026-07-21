@@ -1623,6 +1623,25 @@ def parse_campaign_csv(path):
             'video_views': int(_f(row, 'Video Views')),
         })
 
+    # ── Aggrega per (camp_id, date) ──────────────────────────────────────────
+    # L'Ad Set Performance Report ha una riga per ad set: se una campagna nesta
+    # più ad set, ci sono più righe con lo stesso (camp_id, date) da sommare.
+    # Per il report a livello campagna (1 riga/camp/giorno) è un no-op.
+    ADDITIVE = ('spent', 'impressions', 'clicks', 'reactions', 'comments',
+                'shares', 'follows', 'conversions', 'leads', 'reach', 'video_views')
+    agg = {}
+    for r in daily_rows:
+        key = (r['camp_id'], r['date'])
+        if key not in agg:
+            agg[key] = dict(r)
+        else:
+            for m in ADDITIVE:
+                agg[key][m] += r[m]
+    daily_rows = []
+    for r in agg.values():
+        r['spent'] = round(r['spent'], 4)
+        daily_rows.append(r)
+
     # camp_meta: una entry per campagna (dati statici: budget, obiettivo, stato, date)
     camp_meta = {}
     for c in camps.values():
